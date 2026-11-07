@@ -74,19 +74,6 @@
   modal?.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", closeModal));
   document.addEventListener("keydown", event => { if (event.key === "Escape" && modal?.classList.contains("open")) closeModal(); });
 
-  // Switch the featured player between real YouTube trailers.
-  const youtubePlayer = document.getElementById("youtubeStream");
-  const youtubeOpen = document.getElementById("youtubeOpen");
-  document.querySelectorAll(".video-pick").forEach(button => {
-    button.addEventListener("click", () => {
-      const videoId = button.dataset.video;
-      if (!youtubePlayer || !videoId) return;
-      youtubePlayer.src = "https://www.youtube-nocookie.com/embed/" + videoId + "?rel=0";
-      if (youtubeOpen) youtubeOpen.href = "https://www.youtube.com/watch?v=" + videoId;
-      document.querySelectorAll(".video-pick").forEach(item => item.classList.toggle("active", item === button));
-    });
-  });
-
   // Demo audience is deliberately simulated; both HUD and hidden fallback stay in sync.
   let viewers = 704;
   const viewerLabels = [document.getElementById("viewerCountOverlay"), document.getElementById("viewerCount")].filter(Boolean);
