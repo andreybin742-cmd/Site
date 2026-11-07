@@ -33,6 +33,7 @@
     render();
   }
   filters.forEach(button => button.addEventListener("click", () => chooseFilter(button.dataset.filter)));
+  document.querySelector("[data-fav-link]")?.addEventListener("click", () => chooseFilter("favorites"));
   document.querySelectorAll(".collection-card[data-collection-filter]").forEach(link => {
     link.addEventListener("click", () => chooseFilter(link.dataset.collectionFilter));
   });
