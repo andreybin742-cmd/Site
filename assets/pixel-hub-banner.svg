@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="t d">
+<title id="t">PIXEL HUB — игровой портал</title><desc id="d">Неоновая игровая эмблема в синих и фиолетовых тонах.</desc>
+<defs>
+ <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#080d28"/><stop offset=".52" stop-color="#111044"/><stop offset="1" stop-color="#210b38"/></linearGradient>
+ <linearGradient id="metal" x2="0" y2="1"><stop stop-color="#fff"/><stop offset=".48" stop-color="#a8caff"/><stop offset="1" stop-color="#617bff"/></linearGradient>
+ <linearGradient id="neon"><stop stop-color="#16d9ff"/><stop offset=".5" stop-color="#8b63ff"/><stop offset="1" stop-color="#f04cff"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#623dff" stop-opacity=".65"/><stop offset="1" stop-color="#2512a0" stop-opacity="0"/></radialGradient>
+ <filter id="blur"><feGaussianBlur stdDeviation="24"/></filter>
+ <filter id="shadow"><feGaussianBlur stdDeviation="8"/></filter>
+</defs>
+<rect width="1600" height="900" fill="url(#bg)"/>
+<circle cx="800" cy="430" r="490" fill="url(#glow)"/>
+<path d="M0 140 270 0h1060l270 170v570l-250 160H250L0 720Z" fill="none" stroke="#4b54ff" stroke-opacity=".35" stroke-width="3"/>
+<g fill="none" stroke="url(#neon)" opacity=".7"><path d="M70 450H330l90-100h760l90 100h260" stroke-width="5"/><path d="M100 490H310l100 100h780l100-100h210" stroke-width="2"/></g>
+<g transform="translate(800 250)">
+ <ellipse rx="265" ry="88" fill="none" stroke="#15dfff" stroke-width="13" opacity=".8" transform="rotate(-12)"/>
+ <ellipse rx="275" ry="94" fill="none" stroke="#b64cff" stroke-width="12" opacity=".75" transform="rotate(12)"/>
+ <path d="M-260-5q0-75 70-75h380q70 0 70 75l-26 105q-12 48-65 40l-105-34h-128l-105 34q-53 8-65-40Z" fill="#090d23" stroke="url(#neon)" stroke-width="8"/>
+ <path d="M-175-15h88m-44-44v88" stroke="#4ddfff" stroke-width="18" stroke-linecap="round"/>
+ <g fill="none" stroke="#d17bff" stroke-width="15"><circle cx="145" cy="-25" r="24"/><circle cx="195" cy="25" r="24"/></g>
+ <path d="M-30 10h60l-30 45Z" fill="#8d72ff"/><path d="M-35-5 0-55 35-5Z" fill="#36dcff" opacity=".85"/>
+ <path d="M-45-108 0-145l45 37" fill="none" stroke="#a77aff" stroke-width="10"/>
+</g>
+<g text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="900">
+ <text x="800" y="565" font-size="170" letter-spacing="-7" fill="#08102b" stroke="#0a0e28" stroke-width="24">PIXEL HUB</text>
+ <text x="800" y="550" font-size="170" letter-spacing="-7" fill="url(#metal)" stroke="url(#neon)" stroke-width="5">PIXEL HUB</text>
+ <text x="800" y="635" font-size="38" letter-spacing="17" fill="#dce7ff">ИГРОВОЙ ПОРТАЛ</text>
+</g>
+<g font-family="Arial,Helvetica,sans-serif" font-size="25" font-weight="700" text-anchor="middle" fill="#dce6ff">
+ <g transform="translate(280 760)"><path d="M-40-15h80v35h-80z" fill="none" stroke="#28dfff" stroke-width="5"/><text y="70">ИГРЫ</text></g>
+ <g transform="translate(625 760)"><path d="M0-45 35 15h-70Z" fill="none" stroke="#8d72ff" stroke-width="5"/><text y="70">НОВОСТИ</text></g>
+ <g transform="translate(975 760)"><path d="M-35-35h70v55h-70z" fill="none" stroke="#c66aff" stroke-width="5"/><text y="70">РЕЙТИНГ</text></g>
+ <g transform="translate(1320 760)"><path d="m0-45 14 28 31 5-23 22 5 31L0 26l-27 15 5-31-23-22 31-5Z" fill="none" stroke="#d46cff" stroke-width="5"/><text y="70">СООБЩЕСТВО</text></g>
+</g>
+<text x="800" y="865" fill="#aabaff" font-family="Arial,Helvetica,sans-serif" font-size="24" letter-spacing="12" text-anchor="middle">ИГРАЙ • ОТКРЫВАЙ • ОБЩАЙСЯ</text>
+</svg>
