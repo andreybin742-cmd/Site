@@ -9,3 +9,19 @@
 .news-thumb{background-image:url("assets/news.svg");background-size:300% 100%;background-repeat:no-repeat;font-size:0}
 .news-one{background-position:0 0}.news-two{background-position:50% 0}.news-three{background-position:100% 0}
 @media(max-width:540px){.hero-banner{background-position:58% center}.hero-banner:before{background:linear-gradient(90deg,rgba(3,10,28,.82),rgba(3,10,28,.15))}}
+
+
+/* Real game artwork from public game-store CDNs — no drawn placeholder art */
+.hero-banner{background-image:linear-gradient(90deg,rgba(4,10,28,.88) 0%,rgba(4,10,28,.56) 38%,rgba(4,10,28,.08) 78%),url("https://cdn.akamai.steamstatic.com/steam/apps/1091500/library_hero.jpg");background-size:cover;background-position:center 42%;background-repeat:no-repeat}
+.hero-scene{display:none}
+.game-art{background-size:cover;background-position:center;background-repeat:no-repeat}
+.game-art span,.game-art b{display:none}
+.art-minecraft{background-image:url("https://images.unsplash.com/photo-1607513746994-51f730a44832?auto=format&fit=crop&w=900&q=85")}
+.art-gta{background-image:url("https://cdn.akamai.steamstatic.com/steam/apps/271590/header.jpg")}
+.art-rdr{background-image:url("https://cdn.akamai.steamstatic.com/steam/apps/1174180/header.jpg")}
+.art-witcher{background-image:url("https://cdn.akamai.steamstatic.com/steam/apps/292030/header.jpg")}
+.news-thumb{display:block;background-size:cover;background-position:center;background-repeat:no-repeat;font-size:0}
+.news-one{background-image:url("https://cdn.akamai.steamstatic.com/steam/apps/1938090/header.jpg")}
+.news-two{background-image:url("https://cdn.akamai.steamstatic.com/steam/apps/2358720/header.jpg")}
+.news-three{background-image:url("https://cdn.akamai.steamstatic.com/steam/apps/1091500/header.jpg")}
+@media(max-width:540px){.hero-banner{background-position:58% center}}
