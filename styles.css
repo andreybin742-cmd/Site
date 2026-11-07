@@ -25,13 +25,3 @@
 .news-two{background-image:url("https://cdn.akamai.steamstatic.com/steam/apps/2358720/header.jpg")}
 .news-three{background-image:url("https://cdn.akamai.steamstatic.com/steam/apps/1091500/header.jpg")}
 @media(max-width:540px){.hero-banner{background-position:58% center}}
-
-
-/* YouTube trailer selector and direct game-card links */
-.video-picks{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:10px 11px;border-top:1px solid #202e5c;background:#080f25}
-.video-pick{border:1px solid #344477;background:#101a36;color:#dce6ff;border-radius:18px;padding:7px 10px;font-size:10px;font-weight:800;cursor:pointer}
-.video-pick.active,.video-pick:hover{border-color:#a33dff;background:linear-gradient(100deg,#7621ce,#2342bd);color:#fff;box-shadow:0 0 12px #7621ce55}
-.youtube-open{margin-left:auto;color:#28baff;font-size:10px;font-weight:800;white-space:nowrap}
-.trailer-link{display:block;margin:7px 8px 0;padding:8px 5px;border:1px solid #344b83;border-radius:18px;text-align:center;color:#56c8ff;font-size:9px;font-weight:800;transition:.2s}
-.trailer-link:hover{border-color:#a33dff;background:#25104a;color:#fff}
-@media(max-width:540px){.video-picks{gap:6px}.video-pick{font-size:9px;padding:7px 9px}.youtube-open{margin-left:0;width:100%;padding:5px 2px}.trailer-link{font-size:10px}}
