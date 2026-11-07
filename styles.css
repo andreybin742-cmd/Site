@@ -82,3 +82,9 @@ footer{line-height:1.7}
  .details-btn{min-height:40px;font-size:10px;margin-top:8px}
  .collection-card{gap:12px;padding:21px}
 }
+
+/* PIXEL HUB branded artwork */
+.hero-art-brand{overflow:hidden;display:flex;align-items:center;justify-content:center;padding:0;border:1px solid #7774ff55;border-radius:24px;background:#090d25;box-shadow:0 25px 90px #3020a044}
+.hero-art-brand:before{display:none}
+.hero-art-brand img{display:block;width:100%;height:100%;min-height:340px;object-fit:cover;border-radius:inherit}
+@media(max-width:900px){.hero-art-brand{min-height:0;aspect-ratio:16/9}.hero-art-brand img{min-height:0}}
