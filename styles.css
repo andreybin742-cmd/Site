@@ -40,3 +40,45 @@
 .modal-panel{position:relative;width:min(460px,100%);padding:30px;border:1px solid #ffffff20;border-radius:20px;background:var(--panel);box-shadow:var(--shadow);z-index:1}.modal-panel h2{margin:12px 0;font-size:28px}.modal-panel p{font-size:13px;color:var(--muted);line-height:1.8}.modal-note{padding-top:15px;border-top:1px solid var(--line);font-size:9px;color:var(--muted)}.modal-close{position:absolute;right:15px;top:12px;border:0;background:transparent;color:var(--muted);font-size:28px;cursor:pointer}.modal-done{display:inline-block;margin-top:20px;border:0;color:#fff;cursor:pointer}
 @media(max-width:900px){.stream-layout{grid-template-columns:1fr}.stream-side{min-height:240px}.chat-messages{display:grid;grid-template-columns:1fr 1fr;column-gap:20px}.game-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){.live-section{padding:38px 0}.live-heading{align-items:center}.stream-layout{gap:11px}.stream-info{padding:12px;align-items:flex-start}.stream-title{gap:9px}.stream-title h3{font-size:11px}.stream-title p{font-size:8px;max-width:210px}.stream-viewers{gap:4px}.stream-viewers strong{font-size:13px}.stream-viewers small{font-size:8px}.stream-disclaimer{padding:0 12px 11px;font-size:7px}.stream-overlay{top:8px;left:8px;right:8px}.stream-live,.stream-quality{font-size:7px;padding:6px 7px}.side-top{padding:13px}.chat-messages{grid-template-columns:1fr 1fr;padding:7px 12px}.chat-message{font-size:9px;padding:9px 0}.chat-message b{font-size:8px}.bottom-cta{margin:0 0 55px;padding:25px 21px;align-items:flex-start;flex-direction:column}.bottom-cta h2{font-size:28px}.details-btn{padding:8px 6px}.modal-panel{padding:25px 22px}}
+
+/* Refinements: centered broadcast HUD, readable spacing and clear card actions */
+.stream-frame{isolation:isolate}
+.stream-overlay{inset:0;align-items:flex-start;padding:13px;z-index:5}
+.stream-quality{margin-left:auto}
+.stream-center-badge{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:10px;background:#070911d9;border:1px solid #ffffff30;box-shadow:0 5px 28px #0008;backdrop-filter:blur(10px);white-space:nowrap}
+.stream-center-badge .stream-live{padding:0;background:transparent}
+.stream-live-viewers{display:flex;align-items:center;gap:5px;color:#fff;font-size:10px}
+.stream-live-viewers strong{font-size:12px;font-variant-numeric:tabular-nums}
+.stream-live-viewers small{font-size:9px;color:#c4c8d5}
+.stream-info{justify-content:flex-start;min-height:76px;padding:15px 18px}
+.stream-title{max-width:100%}
+.stream-title p{line-height:1.65;white-space:normal}
+.stream-disclaimer{line-height:1.7;letter-spacing:.1px}
+.game-card{display:flex;flex-direction:column;gap:0}
+.game-info{min-height:65px;align-items:flex-start;padding:14px 6px 10px}
+.game-info>div{min-width:0}
+.game-info h3{line-height:1.45;overflow-wrap:anywhere}
+.game-info p{line-height:1.55;white-space:normal;overflow:visible;text-overflow:clip;max-width:100%}
+.game-meta{min-height:34px;align-items:center;gap:8px;line-height:1.5}
+.details-btn{min-height:38px;margin-top:auto;padding:10px 11px;font-size:10px;letter-spacing:.2px;pointer-events:auto;position:relative;z-index:2}
+.favorite{flex:none;min-width:32px;min-height:32px;display:grid;place-items:center;position:relative;z-index:3}
+.section-subtitle{line-height:1.7;max-width:560px}
+.collection-card{gap:14px;padding:24px}
+.collection-card b{line-height:1.3}
+.collection-card small{line-height:1.7}
+.bottom-cta{gap:28px}
+.bottom-cta .eyebrow{line-height:1.7}
+footer{line-height:1.7}
+@media(max-width:640px){
+ .stream-center-badge{bottom:9px;padding:6px 8px;gap:7px}
+ .stream-live-viewers{font-size:9px}
+ .stream-live-viewers strong{font-size:11px}
+ .stream-title p{max-width:none;font-size:9px;line-height:1.6}
+ .stream-info{min-height:68px;padding:12px}
+ .game-info{min-height:72px;padding:11px 4px 9px}
+ .game-info h3{font-size:11px;line-height:1.45}
+ .game-info p{font-size:9px;line-height:1.5}
+ .game-meta{min-height:38px;font-size:8px}
+ .details-btn{min-height:40px;font-size:10px;margin-top:8px}
+ .collection-card{gap:12px;padding:21px}
+}
