@@ -46,7 +46,7 @@ const startBtn=document.getElementById('startBtn'),stopBtn=document.getElementBy
 const cameraDot=document.getElementById('cameraDot'),cameraLabel=document.getElementById('cameraLabel');
 const handsPill=document.getElementById('handsPill'),gestureReadout=document.getElementById('gestureReadout'),gestureSub=document.getElementById('gestureSub');
 const trackingReadout=document.getElementById('trackingReadout'),spaceReadout=document.getElementById('spaceReadout'),soundBtn=document.getElementById('soundBtn');
-let landmarker=null,stream=null,running=false,lastVideoTime=-1,raf=0,audio=null,soundOn=false,lastGesture='',rings=[],gestureCooldown=0,handPositions=[];
+let landmarker=null,stream=null,running=false,lastVideoTime=-1,raf=0,audio=null,soundOn=false,lastGesture='',rings=[],sparks=[],gestureCooldown=0,handPositions=[];
 const links=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[17,0]];
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function fingerUp(p,tip,pip){return p[tip].y<p[pip].y}
@@ -61,28 +61,42 @@ function classify(p){
  return ['Жест распознан','Продолжай движение'];
 }
 function resize(){const r=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*d);canvas.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0)}
-function burst(x,y,color,count=34,power=5){
- for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2,s=.8+Math.random()*power; sparks.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,size:1.5+Math.random()*3,color});}
+function burst(x,y,color,count=52,power=8){
+ for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2,s=1.2+Math.random()*power;sparks.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.7+Math.random()*.3,size:1+Math.random()*2.8,color});}
 }
 function addRing(x,y,color,max=190,speed=5){rings.push({x,y,r:8,max,speed,life:1,color});}
 function drawReactor(x,y,scale,phase,color){
- const t=phase;
+ const t=phase*.001;
  ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
- // soft volumetric glow
- const glow=ctx.createRadialGradient(0,0,2,0,0,72);
- glow.addColorStop(0,'rgba(220,252,255,.96)');glow.addColorStop(.12,'rgba(85,225,255,.72)');glow.addColorStop(.42,'rgba(28,130,255,.18)');glow.addColorStop(1,'rgba(0,30,90,0)');
- ctx.fillStyle=glow;ctx.beginPath();ctx.arc(0,0,72,0,Math.PI*2);ctx.fill();
- // precision concentric rings
- for(let i=0;i<4;i++){
-  const r=17+i*10,rot=t*(i%2?-.00055:.0007)*(i+1);
-  ctx.save();ctx.rotate(rot);ctx.beginPath();ctx.arc(0,0,r,i*.42,Math.PI*1.72+i*.42);
-  ctx.strokeStyle=i===0?'#f5ffff':color;ctx.globalAlpha=.95-i*.14;ctx.lineWidth=i===0?2.5:1.25;ctx.shadowBlur=15;ctx.shadowColor=color;ctx.stroke();
-  for(let k=0;k<12;k++){const q=k*Math.PI/6;ctx.beginPath();ctx.moveTo(Math.cos(q)* (r-2),Math.sin(q)*(r-2));ctx.lineTo(Math.cos(q)*(r+(k%3===0?7:3)),Math.sin(q)*(r+(k%3===0?7:3)));ctx.strokeStyle=color;ctx.globalAlpha=.65;ctx.lineWidth=1;ctx.stroke()}
+ // cinematic bloom: bright plasma core with a wide blue-white falloff
+ let g=ctx.createRadialGradient(0,0,1,0,0,112);
+ g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.055,'rgba(214,250,255,.98)');
+ g.addColorStop(.16,'rgba(70,220,255,.72)');g.addColorStop(.38,'rgba(24,132,255,.24)');g.addColorStop(1,'rgba(0,25,90,0)');
+ ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,112,0,Math.PI*2);ctx.fill();
+ // radial energy blades
+ for(let i=0;i<36;i++){
+  const a=i*Math.PI*2/36+t*(i%2?-.16:.12),inner=31+(i%3)*2,outer=48+(i%5)*5;
+  ctx.save();ctx.rotate(a);ctx.beginPath();ctx.moveTo(inner,0);ctx.lineTo(outer,0);
+  ctx.strokeStyle=i%3===0?'rgba(240,255,255,.95)':color;ctx.lineWidth=i%3===0?2.2:1;ctx.shadowBlur=15;ctx.shadowColor=color;ctx.stroke();ctx.restore();
+ }
+ // layered rotating precision rings
+ for(let i=0;i<5;i++){
+  const r=19+i*11,rot=t*(i%2?-.9:.65)*(i+1);
+  ctx.save();ctx.rotate(rot);ctx.beginPath();ctx.arc(0,0,r,.18+i*.37,Math.PI*1.78+i*.37);
+  ctx.strokeStyle=i===0?'#ffffff':color;ctx.globalAlpha=.98-i*.12;ctx.lineWidth=i===0?3:1.5;
+  ctx.shadowBlur=22;ctx.shadowColor=color;ctx.stroke();
+  for(let k=0;k<24;k++){const q=k*Math.PI/12;ctx.beginPath();ctx.moveTo(Math.cos(q)*(r-2),Math.sin(q)*(r-2));ctx.lineTo(Math.cos(q)*(r+(k%3===0?9:3)),Math.sin(q)*(r+(k%3===0?9:3)));ctx.strokeStyle='#dffaff';ctx.globalAlpha=k%3===0?.9:.42;ctx.lineWidth=k%3===0?1.5:.8;ctx.stroke()}
   ctx.restore();
  }
- // bright arc segments and central energy core
- ctx.rotate(-t*.0008);ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fillStyle='#f4ffff';ctx.shadowBlur=28;ctx.shadowColor='#7ceaff';ctx.fill();
- ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+ // animated electrical corona arcs
+ for(let j=0;j<4;j++){
+  const start=t*(j%2?-.8:.65)+j*1.57,end=start+1.0+Math.sin(t*2+j)*.28,r=62+j*7;
+  ctx.beginPath();for(let q=0;q<=24;q++){const u=q/24,ang=start+(end-start)*u,rr=r+Math.sin(u*31+t*8+j)*3+Math.sin(u*13-t*5)*2;const px=Math.cos(ang)*rr,py=Math.sin(ang)*rr;q?ctx.lineTo(px,py):ctx.moveTo(px,py)}
+  ctx.strokeStyle='rgba(173,244,255,.9)';ctx.lineWidth=1.5;ctx.shadowBlur=18;ctx.shadowColor=color;ctx.stroke();
+ }
+ // central white-hot core
+ const core=ctx.createRadialGradient(0,0,0,0,0,15);core.addColorStop(0,'#fff');core.addColorStop(.35,'#e9ffff');core.addColorStop(.7,color);core.addColorStop(1,'rgba(50,190,255,0)');
+ ctx.fillStyle=core;ctx.beginPath();ctx.arc(0,0,15,0,Math.PI*2);ctx.shadowBlur=35;ctx.shadowColor=color;ctx.fill();
  ctx.restore();
 }
 function drawHandHUD(points,idx,gesture,now){
@@ -119,9 +133,9 @@ function drawHands(result){
   const [g,s]=classify(p);if(idx===0){label=g;sub=s;
    if(g!==lastGesture){lastGesture=g;playTone(g);gestureCooldown=0;
     const palm=points[9],color=g==='Кулак'?'#ffbd70':g==='Щепотка'?'#b9a5ff':g==='Открытая ладонь'?'#63eaff':'#8edcff';
-    if(g==='Кулак'){addRing(palm.x,palm.y,color,Math.max(w,h)*.8,13);spaceReadout.textContent='REPULSOR CHARGED'}
+    if(g==='Кулак'){burst(palm.x,palm.y,color,85,11);addRing(palm.x,palm.y,color,Math.max(w,h)*.8,13);spaceReadout.textContent='REPULSOR CHARGED'}
     else if(g==='Щепотка'){addRing(palm.x,palm.y,color,Math.min(w,h)*.62,5);spaceReadout.textContent='HOLOGRAM LINK'}
-    else if(g==='Открытая ладонь'){addRing(palm.x,palm.y,color,Math.max(w,h)*.72,9);spaceReadout.textContent='INTERFACE ONLINE'}
+    else if(g==='Открытая ладонь'){burst(palm.x,palm.y,color,45,6);addRing(palm.x,palm.y,color,Math.max(w,h)*.72,9);spaceReadout.textContent='INTERFACE ONLINE'}
     else if(g==='Два пальца'){addRing(points[8].x,points[8].y,color,Math.max(w,h)*.7,10);spaceReadout.textContent='ENERGY PULSE'}
    }
   }
@@ -140,8 +154,10 @@ function drawParticles(w,h){
  ctx.restore();
  rings=rings.filter(r=>r.life>.02&&r.r<r.max);
  rings.forEach(r=>{r.r+=r.speed;r.life-=.012;ctx.save();ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,Math.PI*2);ctx.strokeStyle=r.color;ctx.globalAlpha=Math.max(0,r.life)*.62;ctx.lineWidth=2;ctx.shadowBlur=30;ctx.shadowColor=r.color;ctx.stroke();ctx.restore()});
- // subtle floating interface reticles around each tracked palm
- handPositions.forEach((p,i)=>{ctx.save();ctx.translate(p.x,p.y);ctx.rotate(now*.00022*(i?-.7:1));ctx.strokeStyle=i?'rgba(160,170,255,.45)':'rgba(100,225,255,.5)';ctx.lineWidth=1;ctx.setLineDash([16,8,3,8]);ctx.beginPath();ctx.arc(0,0,88,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore()});
+ // electric fragments and precision reticles
+ sparks=sparks.filter(s=>s.life>.025);
+ sparks.forEach(s=>{s.x+=s.vx;s.y+=s.vy;s.vx*=.965;s.vy*=.965;s.life-=.018;ctx.save();ctx.globalAlpha=s.life;ctx.strokeStyle=s.color;ctx.shadowBlur=15;ctx.shadowColor=s.color;ctx.lineWidth=s.size;ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(s.x-s.vx*2.4,s.y-s.vy*2.4);ctx.stroke();ctx.restore()});
+ handPositions.forEach((p,i)=>{ctx.save();ctx.translate(p.x,p.y);ctx.rotate(now*.00022*(i?-.7:1));ctx.strokeStyle=i?'rgba(160,170,255,.62)':'rgba(100,225,255,.72)';ctx.lineWidth=1.2;ctx.setLineDash([22,7,3,7]);ctx.beginPath();ctx.arc(0,0,94,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(0,0,108,now*.001,now*.001+Math.PI*.42);ctx.stroke();ctx.restore()});
 }
 async function start(){
  startBtn.disabled=true;startBtn.textContent='Запрашиваем камеру…';
