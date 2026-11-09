@@ -28,14 +28,14 @@ video,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}v
 <section class="stage" id="stage">
 <video id="video" playsinline muted></video><canvas id="canvas"></canvas>
 <div class="overlay"><div class="pill"><i class="dot" id="cameraDot"></i><span id="cameraLabel">КАМЕРА ВЫКЛЮЧЕНА</span></div><div class="pill" id="handsPill">РУКИ: 0 / 2</div></div>
-<div class="center-hint" id="hint"><div><strong>Твои руки — контроллер</strong><span>Нажми «Включить камеру», разреши доступ и покажи ладони на расстоянии вытянутой руки.</span></div></div>
+<div class="center-hint" id="hint"><div><strong>Твои руки — контроллер</strong><span>Нажми «Включить камеру», затем двигай ладонью, чтобы вращать голографическую планету.</span></div></div>
 </section>
-<div class="controls"><button class="btn primary" id="startBtn">◉ Включить камеру</button><button class="btn" id="stopBtn" disabled>Остановить</button><button class="btn" id="soundBtn">♫ Звук: выкл.</button></div>
+<div class="controls"><button class="btn primary" id="startBtn">◉ Включить камеру</button><button class="btn" id="stopBtn" disabled>Остановить</button></div>
 <section class="info-grid">
 <div class="card"><h2>РАСПОЗНАННЫЙ ЖЕСТ</h2><div class="readout" id="gestureReadout">Ожидание</div><div class="sub" id="gestureSub">Покажи ладонь камере</div></div>
 <div class="card"><h2>ОТСЛЕЖИВАНИЕ</h2><div class="readout" id="trackingReadout">0</div><div class="sub">точек на руках · максимум 42</div></div>
 <div class="card"><h2>ПРОСТРАНСТВО</h2><div class="readout" id="spaceReadout">READY</div><div class="sub">интерактивный режим</div></div>
-<div class="card"><h2>ПОПРОБУЙ ЖЕСТЫ</h2><div class="gesture"><span>Открытая ладонь</span><b>ПУЛЬС</b></div><div class="gesture"><span>Кулак</span><b>ВСПЫШКА</b></div><div class="gesture"><span>Щепотка пальцами</span><b>ПОРТАЛ</b></div><div class="gesture"><span>Два пальца ✌</span><b>ВОЛНА</b></div></div>
+<div class="card"><h2>УПРАВЛЕНИЕ ГОЛОГРАММОЙ</h2><div class="gesture"><span>Двигай ладонью</span><b>ВРАЩЕНИЕ</b></div><div class="gesture"><span>Сведи большой и указательный пальцы</span><b>МАСШТАБ</b></div><div class="gesture"><span>Раздвигай пальцы</span><b>УВЕЛИЧИТЬ</b></div><div class="gesture"><span>Своди пальцы</span><b>УМЕНЬШИТЬ</b></div></div>
 </section>
 <p class="note">Камера обрабатывается в браузере на устройстве; видео никуда не отправляется этой страницей. Для доступа к камере нужен HTTPS и разрешение Safari. Лучше работает при хорошем освещении, когда кисти целиком видны в кадре.</p>
 </main>
@@ -46,9 +46,8 @@ const startBtn=document.getElementById('startBtn'),stopBtn=document.getElementBy
 const cameraDot=document.getElementById('cameraDot'),cameraLabel=document.getElementById('cameraLabel');
 const handsPill=document.getElementById('handsPill'),gestureReadout=document.getElementById('gestureReadout'),gestureSub=document.getElementById('gestureSub');
 const trackingReadout=document.getElementById('trackingReadout'),spaceReadout=document.getElementById('spaceReadout'),soundBtn=document.getElementById('soundBtn');
-let landmarker=null,stream=null,running=false,lastVideoTime=-1,raf=0,audio=null,soundOn=false,lastGesture='',handPositions=[];
-let globeRotY=0.35,globeRotX=-0.12,globeZoom=1,globeTargetZoom=1,lastPalm=null,lastPinchZoom=null;
-const links=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[17,0]];
+let landmarker=null,stream=null,running=false,lastVideoTime=-1,raf=0;
+let globeRotY=0.35,globeRotX=-0.12,globeZoom=1,globeTargetZoom=1,lastPalm=null;
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function fingerUp(p,tip,pip){return p[tip].y<p[pip].y}
 function classify(p){
@@ -118,7 +117,7 @@ function drawHands(result){
  const now=performance.now();
  // The planet remains present even when tracking is briefly lost.
  if(!hands.length){
-  lastPalm=null;lastPinchZoom=null;globeRotY+=.0018;
+  lastPalm=null;globeRotY+=.0018;
   gestureReadout.textContent='Голограмма';gestureSub.textContent='Покажи ладонь, чтобы вращать планету';
   spaceReadout.textContent='HOLOGRAM READY';drawGlobe(w,h,now);return;
  }
@@ -135,8 +134,8 @@ function drawHands(result){
  if(pinching){
   const normalized=Math.max(.12,Math.min(.9,pinchRatio));
   globeTargetZoom=.72+(normalized-.12)/(.9-.12)*2.0;
-  lastPinchZoom=globeTargetZoom;
- }else lastPinchZoom=null;
+  
+ }
  lastPalm=palm;
  const [g]=classify(p);
  gestureReadout.textContent=pinching?'МАСШТАБ':g;
@@ -183,9 +182,7 @@ async function start(){
 }
 function loop(){if(!running)return;if(video.readyState>=2&&video.currentTime!==lastVideoTime){lastVideoTime=video.currentTime;const result=landmarker.detectForVideo(video,performance.now());drawHands(result)}raf=requestAnimationFrame(loop)}
 function stop(){running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;if(landmarker){landmarker.close();landmarker=null}ctx.clearRect(0,0,canvas.width,canvas.height);globeZoom=1;globeTargetZoom=1;lastPalm=null;lastPinchZoom=null;cameraDot.classList.remove('on');cameraLabel.textContent='КАМЕРА ВЫКЛЮЧЕНА';handsPill.textContent='РУКИ: 0 / 2';trackingReadout.textContent='0';gestureReadout.textContent='Остановлено';gestureSub.textContent='Нажми «Включить камеру», чтобы продолжить';spaceReadout.textContent='READY';hint.hidden=false;startBtn.disabled=false;startBtn.textContent='◉ Включить камеру';stopBtn.disabled=true}
-function playTone(g){if(!soundOn||!audio)return;const freq=g==='Кулак'?180:g==='Щепотка'?740:g==='Открытая ладонь'?520:390;const osc=audio.createOscillator(),gain=audio.createGain();osc.type='sine';osc.frequency.value=freq;gain.gain.setValueAtTime(.0001,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.055,audio.currentTime+.025);gain.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.22);osc.connect(gain);gain.connect(audio.destination);osc.start();osc.stop(audio.currentTime+.23)}
-function toggleSound(){soundOn=!soundOn;soundBtn.textContent='♫ Звук: '+(soundOn?'вкл.':'выкл.');if(soundOn){audio=audio||new (window.AudioContext||window.webkitAudioContext)();audio.resume()}}
-startBtn.addEventListener('click',start);stopBtn.addEventListener('click',stop);soundBtn.addEventListener('click',toggleSound);
+startBtn.addEventListener('click',start);stopBtn.addEventListener('click',stop);
 window.addEventListener('resize',resize);window.addEventListener('pagehide',stop);resize();
 </script>
 </body></html>
