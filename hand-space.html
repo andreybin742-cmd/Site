@@ -45,7 +45,7 @@ const video=document.getElementById('video'),canvas=document.getElementById('can
 const startBtn=document.getElementById('startBtn'),stopBtn=document.getElementById('stopBtn'),hint=document.getElementById('hint');
 const cameraDot=document.getElementById('cameraDot'),cameraLabel=document.getElementById('cameraLabel');
 const handsPill=document.getElementById('handsPill'),gestureReadout=document.getElementById('gestureReadout'),gestureSub=document.getElementById('gestureSub');
-const trackingReadout=document.getElementById('trackingReadout'),spaceReadout=document.getElementById('spaceReadout'),soundBtn=document.getElementById('soundBtn');
+const trackingReadout=document.getElementById('trackingReadout'),spaceReadout=document.getElementById('spaceReadout');
 let landmarker=null,stream=null,running=false,lastVideoTime=-1,raf=0;
 let globeRotY=0.35,globeRotX=-0.12,globeZoom=1,globeTargetZoom=1,lastPalm=null;
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
@@ -124,7 +124,7 @@ function drawHands(result){
  const p=hands[0],points=p.map(v=>({x:(1-v.x)*w,y:v.y*h}));
  const palm=points[9],palmWidth=Math.max(1,dist(points[5],points[17]));
  const pinchRatio=dist(points[4],points[8])/palmWidth;
- const pinching=pinchRatio<.9;
+ const pinching=pinchRatio<.52;
  // Move the palm to rotate the globe; a pinch controls magnification.
  if(lastPalm&&!pinching){
   globeRotY+=(palm.x-lastPalm.x)*.009;
@@ -132,8 +132,8 @@ function drawHands(result){
   globeRotX=Math.max(-1.05,Math.min(1.05,globeRotX));
  }
  if(pinching){
-  const normalized=Math.max(.12,Math.min(.9,pinchRatio));
-  globeTargetZoom=.72+(normalized-.12)/(.9-.12)*2.0;
+  const normalized=Math.max(.12,Math.min(.52,pinchRatio));
+  globeTargetZoom=.72+(normalized-.12)/(.52-.12)*2.0;
   
  }
  lastPalm=palm;
@@ -181,7 +181,7 @@ async function start(){
  }
 }
 function loop(){if(!running)return;if(video.readyState>=2&&video.currentTime!==lastVideoTime){lastVideoTime=video.currentTime;const result=landmarker.detectForVideo(video,performance.now());drawHands(result)}raf=requestAnimationFrame(loop)}
-function stop(){running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;if(landmarker){landmarker.close();landmarker=null}ctx.clearRect(0,0,canvas.width,canvas.height);globeZoom=1;globeTargetZoom=1;lastPalm=null;lastPinchZoom=null;cameraDot.classList.remove('on');cameraLabel.textContent='КАМЕРА ВЫКЛЮЧЕНА';handsPill.textContent='РУКИ: 0 / 2';trackingReadout.textContent='0';gestureReadout.textContent='Остановлено';gestureSub.textContent='Нажми «Включить камеру», чтобы продолжить';spaceReadout.textContent='READY';hint.hidden=false;startBtn.disabled=false;startBtn.textContent='◉ Включить камеру';stopBtn.disabled=true}
+function stop(){running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;if(landmarker){landmarker.close();landmarker=null}ctx.clearRect(0,0,canvas.width,canvas.height);globeZoom=1;globeTargetZoom=1;lastPalm=null;cameraDot.classList.remove('on');cameraLabel.textContent='КАМЕРА ВЫКЛЮЧЕНА';handsPill.textContent='РУКИ: 0 / 2';trackingReadout.textContent='0';gestureReadout.textContent='Остановлено';gestureSub.textContent='Нажми «Включить камеру», чтобы продолжить';spaceReadout.textContent='READY';hint.hidden=false;startBtn.disabled=false;startBtn.textContent='◉ Включить камеру';stopBtn.disabled=true}
 startBtn.addEventListener('click',start);stopBtn.addEventListener('click',stop);
 window.addEventListener('resize',resize);window.addEventListener('pagehide',stop);resize();
 </script>
