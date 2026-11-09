@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#050817">
+<title>HAND SPACE — управление жестами</title>
+<style>
+:root{color-scheme:dark;--bg:#050817;--panel:#0b1230;--line:#26366b;--cyan:#42e8ff;--violet:#a64dff;--muted:#9aa8cb}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -10%,#17205a 0,transparent 48%),var(--bg);color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+header{display:flex;align-items:center;justify-content:space-between;padding:18px clamp(16px,4vw,48px);border-bottom:1px solid #253365;background:#050817d9;position:relative;z-index:2}
+.brand{font-weight:950;letter-spacing:.08em;font-size:19px}.brand b{color:var(--cyan);text-shadow:0 0 16px #42e8ff88}.back{color:#cbd6ff;text-decoration:none;font-size:13px}
+main{max-width:1200px;margin:auto;padding:24px clamp(14px,3vw,32px) 42px}.intro{text-align:center;margin:4px 0 22px}.eyebrow{color:var(--cyan);letter-spacing:.22em;font-size:10px;font-weight:900}.intro h1{font-size:clamp(32px,6vw,58px);margin:8px 0 5px;letter-spacing:-.05em}.intro h1 span{color:#a64dff}.intro p{color:var(--muted);font-size:14px;margin:0}
+.stage{position:relative;overflow:hidden;border:1px solid #34508d;border-radius:22px;background:radial-gradient(ellipse at 50% 50%,#15244e,#050914 70%);box-shadow:0 0 45px #5425b833;aspect-ratio:16/9;min-height:280px}
+video,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}video{transform:scaleX(-1);opacity:.72}canvas{pointer-events:none}
+.stage:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,#03071366,transparent 22%,transparent 72%,#03071399)}
+.overlay{position:absolute;z-index:1;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}.pill{border:1px solid #3b5791;background:#071024d9;border-radius:30px;padding:8px 12px;font-size:11px;font-weight:800;backdrop-filter:blur(8px)}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#7885a8;margin-right:7px}.dot.on{background:#48f5bd;box-shadow:0 0 12px #48f5bd}
+.center-hint{position:absolute;z-index:1;inset:0;display:grid;place-items:center;text-align:center;padding:30px;pointer-events:none}.center-hint div{max-width:360px}.center-hint strong{display:block;font-size:19px;margin-bottom:8px}.center-hint span{color:#aab8dc;font-size:12px;line-height:1.6}
+.controls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:17px 0}.btn{border:1px solid #415ba0;border-radius:30px;padding:13px 20px;color:white;background:#101a3a;font-weight:850;font-size:13px;cursor:pointer}.btn.primary{border:0;background:linear-gradient(100deg,#7b35ff,#087ff5);box-shadow:0 0 24px #5e36ff66}.btn:disabled{opacity:.55;cursor:wait}
+.info-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:12px}.card{border:1px solid #253765;border-radius:16px;background:linear-gradient(145deg,#0d1734,#080d20);padding:16px}.card h2{font-size:13px;margin:0 0 10px;color:#e6edff}.gesture{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #1c2a50;font-size:12px;color:#adbadb}.gesture:last-child{border:0}.gesture b{color:var(--cyan);font-size:11px}.readout{font-size:25px;font-weight:900;letter-spacing:-.03em}.sub{font-size:11px;color:#95a4ca;margin-top:4px}.statusline{font-size:12px;color:#b9c7e8;line-height:1.6}.note{color:#7788b0;font-size:10px;line-height:1.55;margin:16px auto 0;max-width:760px;text-align:center}
+@media(max-width:700px){main{padding-top:16px}.stage{aspect-ratio:4/5;min-height:360px}.info-grid{grid-template-columns:1fr 1fr}.info-grid .card:first-child{grid-column:1/-1}.intro p{font-size:12px}.pill{font-size:9px;padding:7px 9px}.btn{padding:12px 16px}}
+</style>
+</head>
+<body>
+<header><a class="back" href="./">← PIXEL HUB</a><div class="brand">HAND <b>SPACE</b></div><span class="eyebrow">CAMERA LAB</span></header>
+<main>
+<section class="intro"><div class="eyebrow">NO GLOVES · NO GLASSES · JUST YOUR PHONE</div><h1>Управляй <span>пространством</span></h1><p>Покажи руки камере — оживи виртуальный мир жестами.</p></section>
+<section class="stage" id="stage">
+<video id="video" playsinline muted></video><canvas id="canvas"></canvas>
+<div class="overlay"><div class="pill"><i class="dot" id="cameraDot"></i><span id="cameraLabel">КАМЕРА ВЫКЛЮЧЕНА</span></div><div class="pill" id="handsPill">РУКИ: 0 / 2</div></div>
+<div class="center-hint" id="hint"><div><strong>Твои руки — контроллер</strong><span>Нажми «Включить камеру», разреши доступ и покажи ладони на расстоянии вытянутой руки.</span></div></div>
+</section>
+<div class="controls"><button class="btn primary" id="startBtn">◉ Включить камеру</button><button class="btn" id="stopBtn" disabled>Остановить</button><button class="btn" id="soundBtn">♫ Звук: выкл.</button></div>
+<section class="info-grid">
+<div class="card"><h2>РАСПОЗНАННЫЙ ЖЕСТ</h2><div class="readout" id="gestureReadout">Ожидание</div><div class="sub" id="gestureSub">Покажи ладонь камере</div></div>
+<div class="card"><h2>ОТСЛЕЖИВАНИЕ</h2><div class="readout" id="trackingReadout">0</div><div class="sub">точек на руках · максимум 42</div></div>
+<div class="card"><h2>ПРОСТРАНСТВО</h2><div class="readout" id="spaceReadout">READY</div><div class="sub">интерактивный режим</div></div>
+<div class="card"><h2>ПОПРОБУЙ ЖЕСТЫ</h2><div class="gesture"><span>Открытая ладонь</span><b>ПУЛЬС</b></div><div class="gesture"><span>Кулак</span><b>ВСПЫШКА</b></div><div class="gesture"><span>Щепотка пальцами</span><b>ПОРТАЛ</b></div><div class="gesture"><span>Два пальца ✌</span><b>ВОЛНА</b></div></div>
+</section>
+<p class="note">Камера обрабатывается в браузере на устройстве; видео никуда не отправляется этой страницей. Для доступа к камере нужен HTTPS и разрешение Safari. Лучше работает при хорошем освещении, когда кисти целиком видны в кадре.</p>
+</main>
+<script type="module">
+import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+const video=document.getElementById('video'),canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+const startBtn=document.getElementById('startBtn'),stopBtn=document.getElementById('stopBtn'),hint=document.getElementById('hint');
+const cameraDot=document.getElementById('cameraDot'),cameraLabel=document.getElementById('cameraLabel');
+const handsPill=document.getElementById('handsPill'),gestureReadout=document.getElementById('gestureReadout'),gestureSub=document.getElementById('gestureSub');
+const trackingReadout=document.getElementById('trackingReadout'),spaceReadout=document.getElementById('spaceReadout'),soundBtn=document.getElementById('soundBtn');
+let landmarker=null,stream=null,running=false,lastVideoTime=-1,raf=0,audio=null,soundOn=false,pulse=0,particles=[];
+const links=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[17,0]];
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function fingerUp(p,tip,pip){return p[tip].y<p[pip].y}
+function classify(p){
+ const pinch=dist(p[4],p[8])<.055;
+ const index=fingerUp(p,8,6),middle=fingerUp(p,12,10),ring=fingerUp(p,16,14),little=fingerUp(p,20,18);
+ const count=[index,middle,ring,little].filter(Boolean).length;
+ if(pinch)return ['Щепотка','Пальцы сведены — портал активирован'];
+ if(count===0)return ['Кулак','Сожми ладонь — энергетическая вспышка'];
+ if(index&&middle&&!ring&&!little)return ['Два пальца','Разведи указательный и средний — волна'];
+ if(count>=4)return ['Открытая ладонь','Разверни ладонь к камере — пульс пространства'];
+ return ['Жест распознан','Продолжай движение'];
+}
+function resize(){const r=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*d);canvas.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0)}
+function drawHands(result){
+ const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);
+ const hands=result.landmarks||[];handsPill.textContent='РУКИ: '+hands.length+' / 2';trackingReadout.textContent=hands.length*21;
+ if(!hands.length){gestureReadout.textContent='Ожидание';gestureSub.textContent='Покажи ладонь камере';spaceReadout.textContent='READY';return}
+ let best=hands[0],label='Рука найдена',sub='Двигай пальцами';let pts=0;
+ hands.forEach((p,idx)=>{
+  pts+=p.length;const points=p.map(v=>({x:(1-v.x)*w,y:v.y*h}));
+  const [g,s]=classify(p);if(idx===0){label=g;sub=s}
+  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.shadowBlur=16;ctx.shadowColor=idx?'#a64dff':'#42e8ff';ctx.strokeStyle=idx?'rgba(183,103,255,.95)':'rgba(66,232,255,.98)';ctx.lineWidth=3;
+  links.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(points[a].x,points[a].y);ctx.lineTo(points[b].x,points[b].y);ctx.stroke()});
+  points.forEach((v,i)=>{ctx.beginPath();ctx.fillStyle=[4,8,12,16,20].includes(i)?'#fff':'#58eaff';ctx.arc(v.x,v.y,[4,8,12,16,20].includes(i)?5:3,0,Math.PI*2);ctx.fill()});
+  const palm=points[9];ctx.beginPath();ctx.arc(palm.x,palm.y,18+Math.sin(Date.now()/160)*5,0,Math.PI*2);ctx.strokeStyle='#ffffff99';ctx.lineWidth=1;ctx.stroke();
+  ctx.restore();
+  if(idx===0&&g==='Кулак'){pulse=1;spaceReadout.textContent='BOOM'}else if(idx===0&&g==='Щепотка'){pulse=.75;spaceReadout.textContent='PORTAL'}else if(idx===0&&g==='Открытая ладонь'){pulse=.4;spaceReadout.textContent='PULSE'}else if(idx===0){spaceReadout.textContent='WAVE'}
+  if(idx===0){for(let k=0;k<2;k++)particles.push({x:palm.x,y:palm.y,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,life:1})}
+ });
+ gestureReadout.textContent=label;gestureSub.textContent=sub;trackingReadout.textContent=pts;
+ drawParticles(w,h);
+}
+function drawParticles(w,h){
+ if(pulse>0){ctx.save();ctx.strokeStyle='rgba(75,220,255,'+(pulse*.65)+')';ctx.lineWidth=2;ctx.shadowBlur=22;ctx.shadowColor='#42e8ff';ctx.beginPath();ctx.arc(w*.5,h*.5,(1-pulse)*Math.max(w,h)*.8,0,Math.PI*2);ctx.stroke();ctx.restore();pulse=Math.max(0,pulse-.025)}
+ particles=particles.filter(p=>p.life>.04).slice(-100);
+ particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=.018;ctx.fillStyle='rgba(95,220,255,'+p.life+')';ctx.fillRect(p.x,p.y,2,2)});
+}
+async function start(){
+ startBtn.disabled=true;startBtn.textContent='Загрузка модели…';
+ try{
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error('Камера недоступна. Открой страницу по HTTPS в Safari.');
+  const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+  landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.55,minHandPresenceConfidence:.5,minTrackingConfidence:.5});
+  stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}}});
+  video.srcObject=stream;await video.play();running=true;lastVideoTime=-1;resize();hint.hidden=true;
+  cameraDot.classList.add('on');cameraLabel.textContent='КАМЕРА АКТИВНА';startBtn.textContent='Камера включена';stopBtn.disabled=false;loop();
+ }catch(e){console.error(e);startBtn.disabled=false;startBtn.textContent='◉ Повторить запуск';gestureReadout.textContent='Не запустилось';gestureSub.textContent=e.name==='NotAllowedError'?'Разреши доступ к камере в настройках Safari.':(e.message||'Проверь интернет и попробуй ещё раз');}
+}
+function loop(){if(!running)return;if(video.readyState>=2&&video.currentTime!==lastVideoTime){lastVideoTime=video.currentTime;const result=landmarker.detectForVideo(video,performance.now());drawHands(result)}raf=requestAnimationFrame(loop)}
+function stop(){running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;if(landmarker){landmarker.close();landmarker=null}ctx.clearRect(0,0,canvas.width,canvas.height);cameraDot.classList.remove('on');cameraLabel.textContent='КАМЕРА ВЫКЛЮЧЕНА';handsPill.textContent='РУКИ: 0 / 2';trackingReadout.textContent='0';gestureReadout.textContent='Остановлено';gestureSub.textContent='Нажми «Включить камеру», чтобы продолжить';spaceReadout.textContent='READY';hint.hidden=false;startBtn.disabled=false;startBtn.textContent='◉ Включить камеру';stopBtn.disabled=true}
+function toggleSound(){soundOn=!soundOn;soundBtn.textContent='♫ Звук: '+(soundOn?'вкл.':'выкл.');if(soundOn){audio=audio||new (window.AudioContext||window.webkitAudioContext)();audio.resume()}}
+startBtn.addEventListener('click',start);stopBtn.addEventListener('click',stop);soundBtn.addEventListener('click',toggleSound);
+window.addEventListener('resize',resize);window.addEventListener('pagehide',stop);resize();
+</script>
+</body></html>
