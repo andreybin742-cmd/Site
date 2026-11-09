@@ -7,11 +7,11 @@
 <title>HAND SPACE — управление жестами</title>
 <style>
 :root{color-scheme:dark;--bg:#050817;--panel:#0b1230;--line:#26366b;--cyan:#42e8ff;--violet:#a64dff;--muted:#9aa8cb}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -10%,#17205a 0,transparent 48%),var(--bg);color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -10%,#102c49 0,transparent 48%),var(--bg);color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
 header{display:flex;align-items:center;justify-content:space-between;padding:18px clamp(16px,4vw,48px);border-bottom:1px solid #253365;background:#050817d9;position:relative;z-index:2}
 .brand{font-weight:950;letter-spacing:.08em;font-size:19px}.brand b{color:var(--cyan);text-shadow:0 0 16px #42e8ff88}.back{color:#cbd6ff;text-decoration:none;font-size:13px}
 main{max-width:1200px;margin:auto;padding:24px clamp(14px,3vw,32px) 42px}.intro{text-align:center;margin:4px 0 22px}.eyebrow{color:var(--cyan);letter-spacing:.22em;font-size:10px;font-weight:900}.intro h1{font-size:clamp(32px,6vw,58px);margin:8px 0 5px;letter-spacing:-.05em}.intro h1 span{color:#a64dff}.intro p{color:var(--muted);font-size:14px;margin:0}
-.stage{position:relative;overflow:hidden;border:1px solid #34508d;border-radius:22px;background:radial-gradient(ellipse at 50% 50%,#15244e,#050914 70%);box-shadow:0 0 45px #5425b833;aspect-ratio:16/9;min-height:280px}
+.stage{position:relative;overflow:hidden;border:1px solid #34508d;border-radius:22px;background:radial-gradient(ellipse at 50% 50%,#102c42,#030812 72%);box-shadow:0 0 55px #1689c833,inset 0 0 60px #0b9bc51a;aspect-ratio:16/9;min-height:280px}
 video,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}video{transform:scaleX(-1);opacity:.72}canvas{pointer-events:none}
 .stage:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,#03071366,transparent 22%,transparent 72%,#03071399)}
 .overlay{position:absolute;z-index:1;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}.pill{border:1px solid #3b5791;background:#071024d9;border-radius:30px;padding:8px 12px;font-size:11px;font-weight:800;backdrop-filter:blur(8px)}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#7885a8;margin-right:7px}.dot.on{background:#48f5bd;box-shadow:0 0 12px #48f5bd}
@@ -46,7 +46,7 @@ const startBtn=document.getElementById('startBtn'),stopBtn=document.getElementBy
 const cameraDot=document.getElementById('cameraDot'),cameraLabel=document.getElementById('cameraLabel');
 const handsPill=document.getElementById('handsPill'),gestureReadout=document.getElementById('gestureReadout'),gestureSub=document.getElementById('gestureSub');
 const trackingReadout=document.getElementById('trackingReadout'),spaceReadout=document.getElementById('spaceReadout'),soundBtn=document.getElementById('soundBtn');
-let landmarker=null,stream=null,running=false,lastVideoTime=-1,raf=0,audio=null,soundOn=false,pulse=0,particles=[],lastGesture='',trails=[],rings=[],sparks=[],gestureCooldown=0,handPositions=[];
+let landmarker=null,stream=null,running=false,lastVideoTime=-1,raf=0,audio=null,soundOn=false,lastGesture='',rings=[],gestureCooldown=0,handPositions=[];
 const links=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[17,0]];
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function fingerUp(p,tip,pip){return p[tip].y<p[pip].y}
@@ -65,51 +65,83 @@ function burst(x,y,color,count=34,power=5){
  for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2,s=.8+Math.random()*power; sparks.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,size:1.5+Math.random()*3,color});}
 }
 function addRing(x,y,color,max=190,speed=5){rings.push({x,y,r:8,max,speed,life:1,color});}
+function drawReactor(x,y,scale,phase,color){
+ const t=phase;
+ ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
+ // soft volumetric glow
+ const glow=ctx.createRadialGradient(0,0,2,0,0,72);
+ glow.addColorStop(0,'rgba(220,252,255,.96)');glow.addColorStop(.12,'rgba(85,225,255,.72)');glow.addColorStop(.42,'rgba(28,130,255,.18)');glow.addColorStop(1,'rgba(0,30,90,0)');
+ ctx.fillStyle=glow;ctx.beginPath();ctx.arc(0,0,72,0,Math.PI*2);ctx.fill();
+ // precision concentric rings
+ for(let i=0;i<4;i++){
+  const r=17+i*10,rot=t*(i%2?-.00055:.0007)*(i+1);
+  ctx.save();ctx.rotate(rot);ctx.beginPath();ctx.arc(0,0,r,i*.42,Math.PI*1.72+i*.42);
+  ctx.strokeStyle=i===0?'#f5ffff':color;ctx.globalAlpha=.95-i*.14;ctx.lineWidth=i===0?2.5:1.25;ctx.shadowBlur=15;ctx.shadowColor=color;ctx.stroke();
+  for(let k=0;k<12;k++){const q=k*Math.PI/6;ctx.beginPath();ctx.moveTo(Math.cos(q)* (r-2),Math.sin(q)*(r-2));ctx.lineTo(Math.cos(q)*(r+(k%3===0?7:3)),Math.sin(q)*(r+(k%3===0?7:3)));ctx.strokeStyle=color;ctx.globalAlpha=.65;ctx.lineWidth=1;ctx.stroke()}
+  ctx.restore();
+ }
+ // bright arc segments and central energy core
+ ctx.rotate(-t*.0008);ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fillStyle='#f4ffff';ctx.shadowBlur=28;ctx.shadowColor='#7ceaff';ctx.fill();
+ ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+ ctx.restore();
+}
+function drawHandHUD(points,idx,gesture,now){
+ const color=idx?'#8e9cff':'#63eaff',palm=points[9];
+ // technical palm contour / projected holographic plate
+ ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+ ctx.shadowBlur=13;ctx.shadowColor=color;ctx.strokeStyle=idx?'rgba(151,164,255,.58)':'rgba(92,222,255,.64)';ctx.lineWidth=1.35;
+ const outline=[0,1,2,3,4,5,9,13,17,0];
+ ctx.beginPath();outline.forEach((n,k)=>k?ctx.lineTo(points[n].x,points[n].y):ctx.moveTo(points[n].x,points[n].y));ctx.stroke();
+ // elegant luminous skeletal guides, no particle dots
+ links.forEach(([u,v])=>{ctx.beginPath();ctx.moveTo(points[u].x,points[u].y);ctx.lineTo(points[v].x,points[v].y);ctx.strokeStyle='rgba(165,239,255,.72)';ctx.lineWidth=1.15;ctx.stroke()});
+ // tiny tracking nodes only at joints
+ points.forEach((v,n)=>{if([0,4,8,12,16,20].includes(n)){ctx.beginPath();ctx.arc(v.x,v.y,2.2,0,Math.PI*2);ctx.fillStyle='#eaffff';ctx.shadowBlur=12;ctx.fill()}});
+ ctx.restore();
+ drawReactor(palm.x,palm.y,1+Math.min(canvas.clientWidth,canvas.clientHeight)/850,now,color);
+ // palm scan lines
+ ctx.save();ctx.translate(palm.x,palm.y);ctx.rotate(now*.00035);
+ ctx.strokeStyle='rgba(118,225,255,.22)';ctx.lineWidth=1;
+ for(let k=0;k<3;k++){ctx.beginPath();ctx.arc(0,0,47+k*8,Math.PI*.1+k*.5,Math.PI*1.05+k*.5);ctx.stroke()}
+ ctx.restore();
+ if(gesture==='Щепотка'){
+  const x=(points[4].x+points[8].x)/2,y=(points[4].y+points[8].y)/2;
+  drawReactor(x,y,.55,now,'#b9a5ff');
+ }
+}
 function drawHands(result){
  const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);
  const hands=result.landmarks||[];handsPill.textContent='РУКИ: '+hands.length+' / 2';trackingReadout.textContent=hands.length*21;
- if(!hands.length){gestureReadout.textContent='Ожидание';gestureSub.textContent='Покажи ладонь камере';spaceReadout.textContent='READY';handPositions=[];drawParticles(w,h);return}
+ const now=performance.now();
+ if(!hands.length){gestureReadout.textContent='Ожидание';gestureSub.textContent='Покажи ладонь камере';spaceReadout.textContent='STANDBY';handPositions=[];drawParticles(w,h);return}
  let label='Рука найдена',sub='Двигай пальцами';let pts=0;handPositions=[];
  hands.forEach((p,idx)=>{
   pts+=p.length;const points=p.map(v=>({x:(1-v.x)*w,y:v.y*h}));
   const [g,s]=classify(p);if(idx===0){label=g;sub=s;
    if(g!==lastGesture){lastGesture=g;playTone(g);gestureCooldown=0;
-    const palm=points[9],color=g==='Кулак'?'#ffb34d':g==='Щепотка'?'#d68cff':g==='Открытая ладонь'?'#55f5d2':'#42e8ff';
-    if(g==='Кулак'){burst(palm.x,palm.y,'#ffb34d',72,9);addRing(palm.x,palm.y,'#ffb34d',Math.max(w,h)*.75,11);spaceReadout.textContent='NOVA BURST'}
-    else if(g==='Щепотка'){burst(palm.x,palm.y,'#d68cff',28,4);addRing(palm.x,palm.y,'#d68cff',Math.min(w,h)*.48,3);spaceReadout.textContent='PORTAL'}
-    else if(g==='Открытая ладонь'){burst(palm.x,palm.y,'#55f5d2',42,6);addRing(palm.x,palm.y,'#55f5d2',Math.max(w,h)*.65,7);spaceReadout.textContent='PULSE'}
-    else if(g==='Два пальца'){burst(points[8].x,points[8].y,'#42e8ff',24,4);addRing(points[8].x,points[8].y,'#42e8ff',Math.max(w,h)*.6,8);spaceReadout.textContent='DUAL WAVE'}
+    const palm=points[9],color=g==='Кулак'?'#ffbd70':g==='Щепотка'?'#b9a5ff':g==='Открытая ладонь'?'#63eaff':'#8edcff';
+    if(g==='Кулак'){addRing(palm.x,palm.y,color,Math.max(w,h)*.8,13);spaceReadout.textContent='REPULSOR CHARGED'}
+    else if(g==='Щепотка'){addRing(palm.x,palm.y,color,Math.min(w,h)*.62,5);spaceReadout.textContent='HOLOGRAM LINK'}
+    else if(g==='Открытая ладонь'){addRing(palm.x,palm.y,color,Math.max(w,h)*.72,9);spaceReadout.textContent='INTERFACE ONLINE'}
+    else if(g==='Два пальца'){addRing(points[8].x,points[8].y,color,Math.max(w,h)*.7,10);spaceReadout.textContent='ENERGY PULSE'}
    }
   }
-  const palm=points[9];handPositions.push(palm);
-  // Glowing skeleton
-  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.shadowBlur=20;ctx.shadowColor=idx?'#b86cff':'#42e8ff';ctx.strokeStyle=idx?'rgba(183,103,255,.9)':'rgba(66,232,255,.95)';ctx.lineWidth=3;
-  links.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(points[a].x,points[a].y);ctx.lineTo(points[b].x,points[b].y);ctx.stroke()});
-  points.forEach((v,i)=>{const tip=[4,8,12,16,20].includes(i);ctx.beginPath();ctx.fillStyle=tip?'#fff':(idx?'#c28aff':'#58eaff');ctx.arc(v.x,v.y,tip?5:2.7,0,Math.PI*2);ctx.fill()});
-  ctx.restore();
-  // Persistent neon ribbons from fingertips
-  [4,8,12,16,20].forEach((n,j)=>{
-   const v=points[n],key=idx+':'+n;let t=trails.find(x=>x.key===key);
-   if(!t){t={key,pts:[]};trails.push(t)}t.pts.push({x:v.x,y:v.y});if(t.pts.length>18)t.pts.shift();
-   if(t.pts.length>2){ctx.save();ctx.beginPath();t.pts.forEach((q,k)=>k?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.strokeStyle=j%2?'#b76cff':'#42e8ff';ctx.lineWidth=j===1?3.5:2;ctx.globalAlpha=.72;ctx.shadowBlur=18;ctx.shadowColor=ctx.strokeStyle;ctx.lineCap='round';ctx.stroke();ctx.restore()}
-   if(Math.random()>.45)sparks.push({x:v.x,y:v.y,vx:(Math.random()-.5)*1.8,vy:(Math.random()-.5)*1.8,life:.8,size:1+Math.random()*2,color:j%2?'#b76cff':'#42e8ff'});
-  });
-  // Rotating portal around pinched fingertips
-  if(g==='Щепотка'&&idx===0){const x=(points[4].x+points[8].x)/2,y=(points[4].y+points[8].y)/2;ctx.save();ctx.translate(x,y);ctx.rotate(Date.now()/260);ctx.shadowBlur=24;ctx.shadowColor='#c16bff';for(let k=0;k<3;k++){ctx.beginPath();ctx.ellipse(0,0,18+k*9,8+k*5,0,0,Math.PI*1.65);ctx.strokeStyle=k===1?'#fff':'#c16bff';ctx.lineWidth=2.5;ctx.stroke()}ctx.restore()}
+  handPositions.push(points[9]);drawHandHUD(points,idx,g,now);
  });
  gestureReadout.textContent=label;gestureSub.textContent=sub;trackingReadout.textContent=pts;
  drawParticles(w,h);
 }
 function drawParticles(w,h){
- const now=Date.now();
- // Soft ambient star field
- for(let i=0;i<3;i++){const x=(Math.sin(now/1800+i*2.1)*.5+.5)*w,y=(Math.cos(now/2300+i*1.7)*.5+.5)*h;ctx.fillStyle='rgba(105,160,255,.22)';ctx.fillRect(x,y,1.5,1.5)}
+ const now=performance.now();
+ // restrained cinematic scan grid
+ ctx.save();ctx.globalAlpha=.12;ctx.strokeStyle='#55cfff';ctx.lineWidth=.6;
+ const step=42,offset=(now*.012)%step;
+ for(let x=-step+offset;x<w;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
+ for(let y=-step+offset;y<h;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+ ctx.restore();
  rings=rings.filter(r=>r.life>.02&&r.r<r.max);
- rings.forEach(r=>{r.r+=r.speed;r.life-=.018;ctx.save();ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,Math.PI*2);ctx.strokeStyle=r.color;ctx.globalAlpha=Math.max(0,r.life)*.8;ctx.lineWidth=2.5;ctx.shadowBlur=24;ctx.shadowColor=r.color;ctx.stroke();ctx.restore()});
- sparks=sparks.filter(p=>p.life>.035).slice(-520);
- sparks.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vx*=.985;p.vy*=.985;p.life-=.014;ctx.save();ctx.globalAlpha=p.life;ctx.fillStyle=p.color;ctx.shadowBlur=12;ctx.shadowColor=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);ctx.fill();ctx.restore()});
- // Small luminous pulse at each palm
- handPositions.forEach((p,i)=>{ctx.save();ctx.beginPath();ctx.arc(p.x,p.y,13+Math.sin(now/130+i)*4,0,Math.PI*2);ctx.strokeStyle=i?'#c18aff':'#42e8ff';ctx.globalAlpha=.7;ctx.lineWidth=1.5;ctx.shadowBlur=18;ctx.shadowColor=ctx.strokeStyle;ctx.stroke();ctx.restore()});
+ rings.forEach(r=>{r.r+=r.speed;r.life-=.012;ctx.save();ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,Math.PI*2);ctx.strokeStyle=r.color;ctx.globalAlpha=Math.max(0,r.life)*.62;ctx.lineWidth=2;ctx.shadowBlur=30;ctx.shadowColor=r.color;ctx.stroke();ctx.restore()});
+ // subtle floating interface reticles around each tracked palm
+ handPositions.forEach((p,i)=>{ctx.save();ctx.translate(p.x,p.y);ctx.rotate(now*.00022*(i?-.7:1));ctx.strokeStyle=i?'rgba(160,170,255,.45)':'rgba(100,225,255,.5)';ctx.lineWidth=1;ctx.setLineDash([16,8,3,8]);ctx.beginPath();ctx.arc(0,0,88,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore()});
 }
 async function start(){
  startBtn.disabled=true;startBtn.textContent='Запрашиваем камеру…';
