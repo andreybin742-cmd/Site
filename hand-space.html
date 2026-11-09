@@ -46,7 +46,7 @@ const startBtn=document.getElementById('startBtn'),stopBtn=document.getElementBy
 const cameraDot=document.getElementById('cameraDot'),cameraLabel=document.getElementById('cameraLabel');
 const handsPill=document.getElementById('handsPill'),gestureReadout=document.getElementById('gestureReadout'),gestureSub=document.getElementById('gestureSub');
 const trackingReadout=document.getElementById('trackingReadout'),spaceReadout=document.getElementById('spaceReadout'),soundBtn=document.getElementById('soundBtn');
-let landmarker=null,stream=null,running=false,lastVideoTime=-1,raf=0,audio=null,soundOn=false,pulse=0,particles=[],lastGesture='';
+let landmarker=null,stream=null,running=false,lastVideoTime=-1,raf=0,audio=null,soundOn=false,pulse=0,particles=[],lastGesture='',trails=[],rings=[],sparks=[],gestureCooldown=0,handPositions=[];
 const links=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[17,0]];
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function fingerUp(p,tip,pip){return p[tip].y<p[pip].y}
@@ -61,29 +61,55 @@ function classify(p){
  return ['Жест распознан','Продолжай движение'];
 }
 function resize(){const r=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*d);canvas.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0)}
+function burst(x,y,color,count=34,power=5){
+ for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2,s=.8+Math.random()*power; sparks.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,size:1.5+Math.random()*3,color});}
+}
+function addRing(x,y,color,max=190,speed=5){rings.push({x,y,r:8,max,speed,life:1,color});}
 function drawHands(result){
  const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);
  const hands=result.landmarks||[];handsPill.textContent='РУКИ: '+hands.length+' / 2';trackingReadout.textContent=hands.length*21;
- if(!hands.length){gestureReadout.textContent='Ожидание';gestureSub.textContent='Покажи ладонь камере';spaceReadout.textContent='READY';return}
- let best=hands[0],label='Рука найдена',sub='Двигай пальцами';let pts=0;
+ if(!hands.length){gestureReadout.textContent='Ожидание';gestureSub.textContent='Покажи ладонь камере';spaceReadout.textContent='READY';handPositions=[];drawParticles(w,h);return}
+ let label='Рука найдена',sub='Двигай пальцами';let pts=0;handPositions=[];
  hands.forEach((p,idx)=>{
   pts+=p.length;const points=p.map(v=>({x:(1-v.x)*w,y:v.y*h}));
-  const [g,s]=classify(p);if(idx===0){label=g;sub=s;if(g!==lastGesture){lastGesture=g;playTone(g)}}
-  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.shadowBlur=16;ctx.shadowColor=idx?'#a64dff':'#42e8ff';ctx.strokeStyle=idx?'rgba(183,103,255,.95)':'rgba(66,232,255,.98)';ctx.lineWidth=3;
+  const [g,s]=classify(p);if(idx===0){label=g;sub=s;
+   if(g!==lastGesture){lastGesture=g;playTone(g);gestureCooldown=0;
+    const palm=points[9],color=g==='Кулак'?'#ffb34d':g==='Щепотка'?'#d68cff':g==='Открытая ладонь'?'#55f5d2':'#42e8ff';
+    if(g==='Кулак'){burst(palm.x,palm.y,'#ffb34d',72,9);addRing(palm.x,palm.y,'#ffb34d',Math.max(w,h)*.75,11);spaceReadout.textContent='NOVA BURST'}
+    else if(g==='Щепотка'){burst(palm.x,palm.y,'#d68cff',28,4);addRing(palm.x,palm.y,'#d68cff',Math.min(w,h)*.48,3);spaceReadout.textContent='PORTAL'}
+    else if(g==='Открытая ладонь'){burst(palm.x,palm.y,'#55f5d2',42,6);addRing(palm.x,palm.y,'#55f5d2',Math.max(w,h)*.65,7);spaceReadout.textContent='PULSE'}
+    else if(g==='Два пальца'){burst(points[8].x,points[8].y,'#42e8ff',24,4);addRing(points[8].x,points[8].y,'#42e8ff',Math.max(w,h)*.6,8);spaceReadout.textContent='DUAL WAVE'}
+   }
+  }
+  const palm=points[9];handPositions.push(palm);
+  // Glowing skeleton
+  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.shadowBlur=20;ctx.shadowColor=idx?'#b86cff':'#42e8ff';ctx.strokeStyle=idx?'rgba(183,103,255,.9)':'rgba(66,232,255,.95)';ctx.lineWidth=3;
   links.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(points[a].x,points[a].y);ctx.lineTo(points[b].x,points[b].y);ctx.stroke()});
-  points.forEach((v,i)=>{ctx.beginPath();ctx.fillStyle=[4,8,12,16,20].includes(i)?'#fff':'#58eaff';ctx.arc(v.x,v.y,[4,8,12,16,20].includes(i)?5:3,0,Math.PI*2);ctx.fill()});
-  const palm=points[9];ctx.beginPath();ctx.arc(palm.x,palm.y,18+Math.sin(Date.now()/160)*5,0,Math.PI*2);ctx.strokeStyle='#ffffff99';ctx.lineWidth=1;ctx.stroke();
+  points.forEach((v,i)=>{const tip=[4,8,12,16,20].includes(i);ctx.beginPath();ctx.fillStyle=tip?'#fff':(idx?'#c28aff':'#58eaff');ctx.arc(v.x,v.y,tip?5:2.7,0,Math.PI*2);ctx.fill()});
   ctx.restore();
-  if(idx===0&&g==='Кулак'){pulse=1;spaceReadout.textContent='BOOM'}else if(idx===0&&g==='Щепотка'){pulse=.75;spaceReadout.textContent='PORTAL'}else if(idx===0&&g==='Открытая ладонь'){pulse=.4;spaceReadout.textContent='PULSE'}else if(idx===0){spaceReadout.textContent='WAVE'}
-  if(idx===0){for(let k=0;k<2;k++)particles.push({x:palm.x,y:palm.y,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,life:1})}
+  // Persistent neon ribbons from fingertips
+  [4,8,12,16,20].forEach((n,j)=>{
+   const v=points[n],key=idx+':'+n;let t=trails.find(x=>x.key===key);
+   if(!t){t={key,pts:[]};trails.push(t)}t.pts.push({x:v.x,y:v.y});if(t.pts.length>18)t.pts.shift();
+   if(t.pts.length>2){ctx.save();ctx.beginPath();t.pts.forEach((q,k)=>k?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.strokeStyle=j%2?'#b76cff':'#42e8ff';ctx.lineWidth=j===1?3.5:2;ctx.globalAlpha=.72;ctx.shadowBlur=18;ctx.shadowColor=ctx.strokeStyle;ctx.lineCap='round';ctx.stroke();ctx.restore()}
+   if(Math.random()>.45)sparks.push({x:v.x,y:v.y,vx:(Math.random()-.5)*1.8,vy:(Math.random()-.5)*1.8,life:.8,size:1+Math.random()*2,color:j%2?'#b76cff':'#42e8ff'});
+  });
+  // Rotating portal around pinched fingertips
+  if(g==='Щепотка'&&idx===0){const x=(points[4].x+points[8].x)/2,y=(points[4].y+points[8].y)/2;ctx.save();ctx.translate(x,y);ctx.rotate(Date.now()/260);ctx.shadowBlur=24;ctx.shadowColor='#c16bff';for(let k=0;k<3;k++){ctx.beginPath();ctx.ellipse(0,0,18+k*9,8+k*5,0,0,Math.PI*1.65);ctx.strokeStyle=k===1?'#fff':'#c16bff';ctx.lineWidth=2.5;ctx.stroke()}ctx.restore()}
  });
  gestureReadout.textContent=label;gestureSub.textContent=sub;trackingReadout.textContent=pts;
  drawParticles(w,h);
 }
 function drawParticles(w,h){
- if(pulse>0){ctx.save();ctx.strokeStyle='rgba(75,220,255,'+(pulse*.65)+')';ctx.lineWidth=2;ctx.shadowBlur=22;ctx.shadowColor='#42e8ff';ctx.beginPath();ctx.arc(w*.5,h*.5,(1-pulse)*Math.max(w,h)*.8,0,Math.PI*2);ctx.stroke();ctx.restore();pulse=Math.max(0,pulse-.025)}
- particles=particles.filter(p=>p.life>.04).slice(-100);
- particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=.018;ctx.fillStyle='rgba(95,220,255,'+p.life+')';ctx.fillRect(p.x,p.y,2,2)});
+ const now=Date.now();
+ // Soft ambient star field
+ for(let i=0;i<3;i++){const x=(Math.sin(now/1800+i*2.1)*.5+.5)*w,y=(Math.cos(now/2300+i*1.7)*.5+.5)*h;ctx.fillStyle='rgba(105,160,255,.22)';ctx.fillRect(x,y,1.5,1.5)}
+ rings=rings.filter(r=>r.life>.02&&r.r<r.max);
+ rings.forEach(r=>{r.r+=r.speed;r.life-=.018;ctx.save();ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,Math.PI*2);ctx.strokeStyle=r.color;ctx.globalAlpha=Math.max(0,r.life)*.8;ctx.lineWidth=2.5;ctx.shadowBlur=24;ctx.shadowColor=r.color;ctx.stroke();ctx.restore()});
+ sparks=sparks.filter(p=>p.life>.035).slice(-520);
+ sparks.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vx*=.985;p.vy*=.985;p.life-=.014;ctx.save();ctx.globalAlpha=p.life;ctx.fillStyle=p.color;ctx.shadowBlur=12;ctx.shadowColor=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);ctx.fill();ctx.restore()});
+ // Small luminous pulse at each palm
+ handPositions.forEach((p,i)=>{ctx.save();ctx.beginPath();ctx.arc(p.x,p.y,13+Math.sin(now/130+i)*4,0,Math.PI*2);ctx.strokeStyle=i?'#c18aff':'#42e8ff';ctx.globalAlpha=.7;ctx.lineWidth=1.5;ctx.shadowBlur=18;ctx.shadowColor=ctx.strokeStyle;ctx.stroke();ctx.restore()});
 }
 async function start(){
  startBtn.disabled=true;startBtn.textContent='Запрашиваем камеру…';
