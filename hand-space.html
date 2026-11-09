@@ -46,7 +46,7 @@ const startBtn=document.getElementById('startBtn'),stopBtn=document.getElementBy
 const cameraDot=document.getElementById('cameraDot'),cameraLabel=document.getElementById('cameraLabel');
 const handsPill=document.getElementById('handsPill'),gestureReadout=document.getElementById('gestureReadout'),gestureSub=document.getElementById('gestureSub');
 const trackingReadout=document.getElementById('trackingReadout'),spaceReadout=document.getElementById('spaceReadout'),soundBtn=document.getElementById('soundBtn');
-let landmarker=null,stream=null,running=false,lastVideoTime=-1,raf=0,audio=null,soundOn=false,pulse=0,particles=[];
+let landmarker=null,stream=null,running=false,lastVideoTime=-1,raf=0,audio=null,soundOn=false,pulse=0,particles=[],lastGesture='';
 const links=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[17,0]];
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function fingerUp(p,tip,pip){return p[tip].y<p[pip].y}
@@ -68,7 +68,7 @@ function drawHands(result){
  let best=hands[0],label='Рука найдена',sub='Двигай пальцами';let pts=0;
  hands.forEach((p,idx)=>{
   pts+=p.length;const points=p.map(v=>({x:(1-v.x)*w,y:v.y*h}));
-  const [g,s]=classify(p);if(idx===0){label=g;sub=s}
+  const [g,s]=classify(p);if(idx===0){label=g;sub=s;if(g!==lastGesture){lastGesture=g;playTone(g)}}
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.shadowBlur=16;ctx.shadowColor=idx?'#a64dff':'#42e8ff';ctx.strokeStyle=idx?'rgba(183,103,255,.95)':'rgba(66,232,255,.98)';ctx.lineWidth=3;
   links.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(points[a].x,points[a].y);ctx.lineTo(points[b].x,points[b].y);ctx.stroke()});
   points.forEach((v,i)=>{ctx.beginPath();ctx.fillStyle=[4,8,12,16,20].includes(i)?'#fff':'#58eaff';ctx.arc(v.x,v.y,[4,8,12,16,20].includes(i)?5:3,0,Math.PI*2);ctx.fill()});
@@ -98,7 +98,7 @@ async function start(){
 }
 function loop(){if(!running)return;if(video.readyState>=2&&video.currentTime!==lastVideoTime){lastVideoTime=video.currentTime;const result=landmarker.detectForVideo(video,performance.now());drawHands(result)}raf=requestAnimationFrame(loop)}
 function stop(){running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;if(landmarker){landmarker.close();landmarker=null}ctx.clearRect(0,0,canvas.width,canvas.height);cameraDot.classList.remove('on');cameraLabel.textContent='КАМЕРА ВЫКЛЮЧЕНА';handsPill.textContent='РУКИ: 0 / 2';trackingReadout.textContent='0';gestureReadout.textContent='Остановлено';gestureSub.textContent='Нажми «Включить камеру», чтобы продолжить';spaceReadout.textContent='READY';hint.hidden=false;startBtn.disabled=false;startBtn.textContent='◉ Включить камеру';stopBtn.disabled=true}
-function toggleSound(){soundOn=!soundOn;soundBtn.textContent='♫ Звук: '+(soundOn?'вкл.':'выкл.');if(soundOn){audio=audio||new (window.AudioContext||window.webkitAudioContext)();audio.resume()}}
+function playTone(g){if(!soundOn||!audio)return;const freq=g==='Кулак'?180:g==='Щепотка'?740:g==='Открытая ладонь'?520:390;const osc=audio.createOscillator(),gain=audio.createGain();osc.type='sine';osc.frequency.value=freq;gain.gain.setValueAtTime(.0001,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.055,audio.currentTime+.025);gain.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.22);osc.connect(gain);gain.connect(audio.destination);osc.start();osc.stop(audio.currentTime+.23)}\nfunction toggleSound(){soundOn=!soundOn;soundBtn.textContent='♫ Звук: '+(soundOn?'вкл.':'выкл.');if(soundOn){audio=audio||new (window.AudioContext||window.webkitAudioContext)();audio.resume()}}
 startBtn.addEventListener('click',start);stopBtn.addEventListener('click',stop);soundBtn.addEventListener('click',toggleSound);
 window.addEventListener('resize',resize);window.addEventListener('pagehide',stop);resize();
 </script>
