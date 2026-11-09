@@ -7,11 +7,11 @@
 <title>HAND SPACE — управление жестами</title>
 <style>
 :root{color-scheme:dark;--bg:#050817;--panel:#0b1230;--line:#26366b;--cyan:#42e8ff;--violet:#a64dff;--muted:#9aa8cb}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -10%,#17205a 0,transparent 48%),var(--bg);color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -10%,#102c49 0,transparent 48%),var(--bg);color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
 header{display:flex;align-items:center;justify-content:space-between;padding:18px clamp(16px,4vw,48px);border-bottom:1px solid #253365;background:#050817d9;position:relative;z-index:2}
 .brand{font-weight:950;letter-spacing:.08em;font-size:19px}.brand b{color:var(--cyan);text-shadow:0 0 16px #42e8ff88}.back{color:#cbd6ff;text-decoration:none;font-size:13px}
 main{max-width:1200px;margin:auto;padding:24px clamp(14px,3vw,32px) 42px}.intro{text-align:center;margin:4px 0 22px}.eyebrow{color:var(--cyan);letter-spacing:.22em;font-size:10px;font-weight:900}.intro h1{font-size:clamp(32px,6vw,58px);margin:8px 0 5px;letter-spacing:-.05em}.intro h1 span{color:#a64dff}.intro p{color:var(--muted);font-size:14px;margin:0}
-.stage{position:relative;overflow:hidden;border:1px solid #34508d;border-radius:22px;background:radial-gradient(ellipse at 50% 50%,#15244e,#050914 70%);box-shadow:0 0 45px #5425b833;aspect-ratio:16/9;min-height:280px}
+.stage{position:relative;overflow:hidden;border:1px solid #34508d;border-radius:22px;background:radial-gradient(ellipse at 50% 50%,#102c42,#030812 72%);box-shadow:0 0 55px #1689c833,inset 0 0 60px #0b9bc51a;aspect-ratio:16/9;min-height:280px}
 video,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}video{transform:scaleX(-1);opacity:.72}canvas{pointer-events:none}
 .stage:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,#03071366,transparent 22%,transparent 72%,#03071399)}
 .overlay{position:absolute;z-index:1;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}.pill{border:1px solid #3b5791;background:#071024d9;border-radius:30px;padding:8px 12px;font-size:11px;font-weight:800;backdrop-filter:blur(8px)}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#7885a8;margin-right:7px}.dot.on{background:#48f5bd;box-shadow:0 0 12px #48f5bd}
@@ -46,7 +46,7 @@ const startBtn=document.getElementById('startBtn'),stopBtn=document.getElementBy
 const cameraDot=document.getElementById('cameraDot'),cameraLabel=document.getElementById('cameraLabel');
 const handsPill=document.getElementById('handsPill'),gestureReadout=document.getElementById('gestureReadout'),gestureSub=document.getElementById('gestureSub');
 const trackingReadout=document.getElementById('trackingReadout'),spaceReadout=document.getElementById('spaceReadout'),soundBtn=document.getElementById('soundBtn');
-let landmarker=null,stream=null,running=false,lastVideoTime=-1,raf=0,audio=null,soundOn=false,pulse=0,particles=[],lastGesture='';
+let landmarker=null,stream=null,running=false,lastVideoTime=-1,raf=0,audio=null,soundOn=false,lastGesture='',rings=[],sparks=[],gestureCooldown=0,handPositions=[];
 const links=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[17,0]];
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function fingerUp(p,tip,pip){return p[tip].y<p[pip].y}
@@ -61,44 +61,139 @@ function classify(p){
  return ['Жест распознан','Продолжай движение'];
 }
 function resize(){const r=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*d);canvas.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0)}
+function burst(x,y,color,count=52,power=8){
+ for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2,s=1.2+Math.random()*power;sparks.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.7+Math.random()*.3,size:1+Math.random()*2.8,color});}
+}
+function addRing(x,y,color,max=190,speed=5){rings.push({x,y,r:8,max,speed,life:1,color});}
+function drawReactor(x,y,scale,phase,color){
+ const t=phase*.001;
+ ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
+ // cinematic bloom: bright plasma core with a wide blue-white falloff
+ let g=ctx.createRadialGradient(0,0,1,0,0,112);
+ g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.055,'rgba(214,250,255,.98)');
+ g.addColorStop(.16,'rgba(70,220,255,.72)');g.addColorStop(.38,'rgba(24,132,255,.24)');g.addColorStop(1,'rgba(0,25,90,0)');
+ ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,112,0,Math.PI*2);ctx.fill();
+ // radial energy blades
+ for(let i=0;i<36;i++){
+  const a=i*Math.PI*2/36+t*(i%2?-.16:.12),inner=31+(i%3)*2,outer=48+(i%5)*5;
+  ctx.save();ctx.rotate(a);ctx.beginPath();ctx.moveTo(inner,0);ctx.lineTo(outer,0);
+  ctx.strokeStyle=i%3===0?'rgba(240,255,255,.95)':color;ctx.lineWidth=i%3===0?2.2:1;ctx.shadowBlur=15;ctx.shadowColor=color;ctx.stroke();ctx.restore();
+ }
+ // layered rotating precision rings
+ for(let i=0;i<5;i++){
+  const r=19+i*11,rot=t*(i%2?-.9:.65)*(i+1);
+  ctx.save();ctx.rotate(rot);ctx.beginPath();ctx.arc(0,0,r,.18+i*.37,Math.PI*1.78+i*.37);
+  ctx.strokeStyle=i===0?'#ffffff':color;ctx.globalAlpha=.98-i*.12;ctx.lineWidth=i===0?3:1.5;
+  ctx.shadowBlur=22;ctx.shadowColor=color;ctx.stroke();
+  for(let k=0;k<24;k++){const q=k*Math.PI/12;ctx.beginPath();ctx.moveTo(Math.cos(q)*(r-2),Math.sin(q)*(r-2));ctx.lineTo(Math.cos(q)*(r+(k%3===0?9:3)),Math.sin(q)*(r+(k%3===0?9:3)));ctx.strokeStyle='#dffaff';ctx.globalAlpha=k%3===0?.9:.42;ctx.lineWidth=k%3===0?1.5:.8;ctx.stroke()}
+  ctx.restore();
+ }
+ // animated electrical corona arcs
+ for(let j=0;j<4;j++){
+  const start=t*(j%2?-.8:.65)+j*1.57,end=start+1.0+Math.sin(t*2+j)*.28,r=62+j*7;
+  ctx.beginPath();for(let q=0;q<=24;q++){const u=q/24,ang=start+(end-start)*u,rr=r+Math.sin(u*31+t*8+j)*3+Math.sin(u*13-t*5)*2;const px=Math.cos(ang)*rr,py=Math.sin(ang)*rr;q?ctx.lineTo(px,py):ctx.moveTo(px,py)}
+  ctx.strokeStyle='rgba(173,244,255,.9)';ctx.lineWidth=1.5;ctx.shadowBlur=18;ctx.shadowColor=color;ctx.stroke();
+ }
+ // central white-hot core
+ const core=ctx.createRadialGradient(0,0,0,0,0,15);core.addColorStop(0,'#fff');core.addColorStop(.35,'#e9ffff');core.addColorStop(.7,color);core.addColorStop(1,'rgba(50,190,255,0)');
+ ctx.fillStyle=core;ctx.beginPath();ctx.arc(0,0,15,0,Math.PI*2);ctx.shadowBlur=35;ctx.shadowColor=color;ctx.fill();
+ ctx.restore();
+}
+function drawHandHUD(points,idx,gesture,now){
+ const color=idx?'#8e9cff':'#63eaff',palm=points[9];
+ // technical palm contour / projected holographic plate
+ ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+ ctx.shadowBlur=13;ctx.shadowColor=color;ctx.strokeStyle=idx?'rgba(151,164,255,.58)':'rgba(92,222,255,.64)';ctx.lineWidth=1.35;
+ const outline=[0,1,2,3,4,5,9,13,17,0];
+ ctx.beginPath();outline.forEach((n,k)=>k?ctx.lineTo(points[n].x,points[n].y):ctx.moveTo(points[n].x,points[n].y));ctx.stroke();
+ // elegant luminous skeletal guides, no particle dots
+ links.forEach(([u,v])=>{ctx.beginPath();ctx.moveTo(points[u].x,points[u].y);ctx.lineTo(points[v].x,points[v].y);ctx.strokeStyle='rgba(165,239,255,.72)';ctx.lineWidth=1.15;ctx.stroke()});
+ // tiny tracking nodes only at joints
+ points.forEach((v,n)=>{if([0,4,8,12,16,20].includes(n)){ctx.beginPath();ctx.arc(v.x,v.y,2.2,0,Math.PI*2);ctx.fillStyle='#eaffff';ctx.shadowBlur=12;ctx.fill()}});
+ ctx.restore();
+ drawReactor(palm.x,palm.y,1+Math.min(canvas.clientWidth,canvas.clientHeight)/850,now,color);
+ // palm scan lines
+ ctx.save();ctx.translate(palm.x,palm.y);ctx.rotate(now*.00035);
+ ctx.strokeStyle='rgba(118,225,255,.22)';ctx.lineWidth=1;
+ for(let k=0;k<3;k++){ctx.beginPath();ctx.arc(0,0,47+k*8,Math.PI*.1+k*.5,Math.PI*1.05+k*.5);ctx.stroke()}
+ ctx.restore();
+ if(gesture==='Щепотка'){
+  const x=(points[4].x+points[8].x)/2,y=(points[4].y+points[8].y)/2;
+  drawReactor(x,y,.55,now,'#b9a5ff');
+ }
+}
 function drawHands(result){
  const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);
  const hands=result.landmarks||[];handsPill.textContent='РУКИ: '+hands.length+' / 2';trackingReadout.textContent=hands.length*21;
- if(!hands.length){gestureReadout.textContent='Ожидание';gestureSub.textContent='Покажи ладонь камере';spaceReadout.textContent='READY';return}
- let best=hands[0],label='Рука найдена',sub='Двигай пальцами';let pts=0;
+ const now=performance.now();
+ if(!hands.length){gestureReadout.textContent='Ожидание';gestureSub.textContent='Покажи ладонь камере';spaceReadout.textContent='STANDBY';handPositions=[];drawParticles(w,h);return}
+ let label='Рука найдена',sub='Двигай пальцами';let pts=0;handPositions=[];
  hands.forEach((p,idx)=>{
   pts+=p.length;const points=p.map(v=>({x:(1-v.x)*w,y:v.y*h}));
-  const [g,s]=classify(p);if(idx===0){label=g;sub=s;if(g!==lastGesture){lastGesture=g;playTone(g)}}
-  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.shadowBlur=16;ctx.shadowColor=idx?'#a64dff':'#42e8ff';ctx.strokeStyle=idx?'rgba(183,103,255,.95)':'rgba(66,232,255,.98)';ctx.lineWidth=3;
-  links.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(points[a].x,points[a].y);ctx.lineTo(points[b].x,points[b].y);ctx.stroke()});
-  points.forEach((v,i)=>{ctx.beginPath();ctx.fillStyle=[4,8,12,16,20].includes(i)?'#fff':'#58eaff';ctx.arc(v.x,v.y,[4,8,12,16,20].includes(i)?5:3,0,Math.PI*2);ctx.fill()});
-  const palm=points[9];ctx.beginPath();ctx.arc(palm.x,palm.y,18+Math.sin(Date.now()/160)*5,0,Math.PI*2);ctx.strokeStyle='#ffffff99';ctx.lineWidth=1;ctx.stroke();
-  ctx.restore();
-  if(idx===0&&g==='Кулак'){pulse=1;spaceReadout.textContent='BOOM'}else if(idx===0&&g==='Щепотка'){pulse=.75;spaceReadout.textContent='PORTAL'}else if(idx===0&&g==='Открытая ладонь'){pulse=.4;spaceReadout.textContent='PULSE'}else if(idx===0){spaceReadout.textContent='WAVE'}
-  if(idx===0){for(let k=0;k<2;k++)particles.push({x:palm.x,y:palm.y,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,life:1})}
+  const [g,s]=classify(p);if(idx===0){label=g;sub=s;
+   if(g!==lastGesture){lastGesture=g;playTone(g);gestureCooldown=0;
+    const palm=points[9],color=g==='Кулак'?'#ffbd70':g==='Щепотка'?'#b9a5ff':g==='Открытая ладонь'?'#63eaff':'#8edcff';
+    if(g==='Кулак'){burst(palm.x,palm.y,color,85,11);addRing(palm.x,palm.y,color,Math.max(w,h)*.8,13);spaceReadout.textContent='REPULSOR CHARGED'}
+    else if(g==='Щепотка'){addRing(palm.x,palm.y,color,Math.min(w,h)*.62,5);spaceReadout.textContent='HOLOGRAM LINK'}
+    else if(g==='Открытая ладонь'){burst(palm.x,palm.y,color,45,6);addRing(palm.x,palm.y,color,Math.max(w,h)*.72,9);spaceReadout.textContent='INTERFACE ONLINE'}
+    else if(g==='Два пальца'){addRing(points[8].x,points[8].y,color,Math.max(w,h)*.7,10);spaceReadout.textContent='ENERGY PULSE'}
+   }
+  }
+  handPositions.push(points[9]);drawHandHUD(points,idx,g,now);
  });
  gestureReadout.textContent=label;gestureSub.textContent=sub;trackingReadout.textContent=pts;
  drawParticles(w,h);
 }
 function drawParticles(w,h){
- if(pulse>0){ctx.save();ctx.strokeStyle='rgba(75,220,255,'+(pulse*.65)+')';ctx.lineWidth=2;ctx.shadowBlur=22;ctx.shadowColor='#42e8ff';ctx.beginPath();ctx.arc(w*.5,h*.5,(1-pulse)*Math.max(w,h)*.8,0,Math.PI*2);ctx.stroke();ctx.restore();pulse=Math.max(0,pulse-.025)}
- particles=particles.filter(p=>p.life>.04).slice(-100);
- particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=.018;ctx.fillStyle='rgba(95,220,255,'+p.life+')';ctx.fillRect(p.x,p.y,2,2)});
+ const now=performance.now();
+ // restrained cinematic scan grid
+ ctx.save();ctx.globalAlpha=.12;ctx.strokeStyle='#55cfff';ctx.lineWidth=.6;
+ const step=42,offset=(now*.012)%step;
+ for(let x=-step+offset;x<w;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
+ for(let y=-step+offset;y<h;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+ ctx.restore();
+ rings=rings.filter(r=>r.life>.02&&r.r<r.max);
+ rings.forEach(r=>{r.r+=r.speed;r.life-=.012;ctx.save();ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,Math.PI*2);ctx.strokeStyle=r.color;ctx.globalAlpha=Math.max(0,r.life)*.62;ctx.lineWidth=2;ctx.shadowBlur=30;ctx.shadowColor=r.color;ctx.stroke();ctx.restore()});
+ // electric fragments and precision reticles
+ sparks=sparks.filter(s=>s.life>.025);
+ sparks.forEach(s=>{s.x+=s.vx;s.y+=s.vy;s.vx*=.965;s.vy*=.965;s.life-=.018;ctx.save();ctx.globalAlpha=s.life;ctx.strokeStyle=s.color;ctx.shadowBlur=15;ctx.shadowColor=s.color;ctx.lineWidth=s.size;ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(s.x-s.vx*2.4,s.y-s.vy*2.4);ctx.stroke();ctx.restore()});
+ handPositions.forEach((p,i)=>{ctx.save();ctx.translate(p.x,p.y);ctx.rotate(now*.00022*(i?-.7:1));ctx.strokeStyle=i?'rgba(160,170,255,.62)':'rgba(100,225,255,.72)';ctx.lineWidth=1.2;ctx.setLineDash([22,7,3,7]);ctx.beginPath();ctx.arc(0,0,94,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(0,0,108,now*.001,now*.001+Math.PI*.42);ctx.stroke();ctx.restore()});
 }
 async function start(){
- startBtn.disabled=true;startBtn.textContent='Загрузка модели…';
+ startBtn.disabled=true;startBtn.textContent='Запрашиваем камеру…';
+ let cameraStream=null;
  try{
-  if(!navigator.mediaDevices?.getUserMedia)throw new Error('Камера недоступна. Открой страницу по HTTPS в Safari.');
+  if(!window.isSecureContext)throw new Error('Safari требует защищённое HTTPS-соединение.');
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error('Safari не предоставил доступ к камере. Открой страницу напрямую в Safari по HTTPS.');
+  // Вызов камеры выполняется сразу внутри нажатия пользователя — это важно для iPhone Safari.
+  cameraStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'user'},width:{ideal:1280},height:{ideal:720}}});
+  stream=cameraStream;video.srcObject=stream;await video.play();
+  cameraDot.classList.add('on');cameraLabel.textContent='КАМЕРА АКТИВНА';
+  startBtn.textContent='Загружаем распознавание…';
   const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
-  landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.55,minHandPresenceConfidence:.5,minTrackingConfidence:.5});
-  stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}}});
-  video.srcObject=stream;await video.play();running=true;lastVideoTime=-1;resize();hint.hidden=true;
-  cameraDot.classList.add('on');cameraLabel.textContent='КАМЕРА АКТИВНА';startBtn.textContent='Камера включена';stopBtn.disabled=false;loop();
- }catch(e){console.error(e);startBtn.disabled=false;startBtn.textContent='◉ Повторить запуск';gestureReadout.textContent='Не запустилось';gestureSub.textContent=e.name==='NotAllowedError'?'Разреши доступ к камере в настройках Safari.':(e.message||'Проверь интернет и попробуй ещё раз');}
+  const options={runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.55,minHandPresenceConfidence:.5,minTrackingConfidence:.5};
+  const model='https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+  try{
+   landmarker=await HandLandmarker.createFromOptions(vision,{...options,baseOptions:{modelAssetPath:model,delegate:'GPU'}});
+  }catch(gpuError){
+   console.warn('GPU недоступен, переключаюсь на CPU',gpuError);
+   landmarker=await HandLandmarker.createFromOptions(vision,{...options,baseOptions:{modelAssetPath:model,delegate:'CPU'}});
+  }
+  running=true;lastVideoTime=-1;resize();hint.hidden=true;
+  startBtn.textContent='Камера включена';stopBtn.disabled=false;loop();
+ }catch(e){
+  console.error(e);
+  if(cameraStream)cameraStream.getTracks().forEach(t=>t.stop());
+  stream=null;video.srcObject=null;cameraDot.classList.remove('on');cameraLabel.textContent='КАМЕРА ВЫКЛЮЧЕНА';
+  startBtn.disabled=false;startBtn.textContent='◉ Повторить запуск';
+  gestureReadout.textContent='Не запустилось';
+  gestureSub.textContent=e.name==='NotAllowedError'?'Доступ запрещён. Разреши камеру для этого сайта в настройках Safari.':e.name==='NotFoundError'?'Камера не найдена на устройстве.':(e.message||'Проверь интернет и попробуй ещё раз.');
+ }
 }
 function loop(){if(!running)return;if(video.readyState>=2&&video.currentTime!==lastVideoTime){lastVideoTime=video.currentTime;const result=landmarker.detectForVideo(video,performance.now());drawHands(result)}raf=requestAnimationFrame(loop)}
 function stop(){running=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;if(landmarker){landmarker.close();landmarker=null}ctx.clearRect(0,0,canvas.width,canvas.height);cameraDot.classList.remove('on');cameraLabel.textContent='КАМЕРА ВЫКЛЮЧЕНА';handsPill.textContent='РУКИ: 0 / 2';trackingReadout.textContent='0';gestureReadout.textContent='Остановлено';gestureSub.textContent='Нажми «Включить камеру», чтобы продолжить';spaceReadout.textContent='READY';hint.hidden=false;startBtn.disabled=false;startBtn.textContent='◉ Включить камеру';stopBtn.disabled=true}
-function playTone(g){if(!soundOn||!audio)return;const freq=g==='Кулак'?180:g==='Щепотка'?740:g==='Открытая ладонь'?520:390;const osc=audio.createOscillator(),gain=audio.createGain();osc.type='sine';osc.frequency.value=freq;gain.gain.setValueAtTime(.0001,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.055,audio.currentTime+.025);gain.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.22);osc.connect(gain);gain.connect(audio.destination);osc.start();osc.stop(audio.currentTime+.23)}\nfunction toggleSound(){soundOn=!soundOn;soundBtn.textContent='♫ Звук: '+(soundOn?'вкл.':'выкл.');if(soundOn){audio=audio||new (window.AudioContext||window.webkitAudioContext)();audio.resume()}}
+function playTone(g){if(!soundOn||!audio)return;const freq=g==='Кулак'?180:g==='Щепотка'?740:g==='Открытая ладонь'?520:390;const osc=audio.createOscillator(),gain=audio.createGain();osc.type='sine';osc.frequency.value=freq;gain.gain.setValueAtTime(.0001,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.055,audio.currentTime+.025);gain.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.22);osc.connect(gain);gain.connect(audio.destination);osc.start();osc.stop(audio.currentTime+.23)}
+function toggleSound(){soundOn=!soundOn;soundBtn.textContent='♫ Звук: '+(soundOn?'вкл.':'выкл.');if(soundOn){audio=audio||new (window.AudioContext||window.webkitAudioContext)();audio.resume()}}
 startBtn.addEventListener('click',start);stopBtn.addEventListener('click',stop);soundBtn.addEventListener('click',toggleSound);
 window.addEventListener('resize',resize);window.addEventListener('pagehide',stop);resize();
 </script>
