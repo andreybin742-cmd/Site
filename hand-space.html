@@ -141,12 +141,41 @@ function drawHands(result){
  gestureReadout.textContent=pinching?'МАСШТАБ':g;
  gestureSub.textContent=pinching?'Раздвигай пальцы — увеличить · своди — уменьшить':'Двигай ладонью — вращать планету';
  spaceReadout.textContent=pinching?'ZOOM CONTROL':'PLANET LINK';
- // Minimal hand contour only: no sparks, reactor, rings or cartoon effects.
- ctx.save();ctx.strokeStyle='rgba(100,220,255,.34)';ctx.lineWidth=1;ctx.shadowColor='#39cfff';ctx.shadowBlur=5;
- const outline=[0,5,9,13,17,0];ctx.beginPath();
- outline.forEach((n,i)=>i?ctx.lineTo(points[n].x,points[n].y):ctx.moveTo(points[n].x,points[n].y));
- ctx.stroke();ctx.restore();
  drawGlobe(w,h,now);
+ // Precision hand exoskeleton: all 21 tracked joints and finger-bone segments.
+ const bones=[
+  [0,1],[1,2],[2,3],[3,4],       // thumb
+  [0,5],[5,6],[6,7],[7,8],       // index
+  [0,9],[9,10],[10,11],[11,12],  // middle
+  [0,13],[13,14],[14,15],[15,16],// ring
+  [0,17],[17,18],[18,19],[19,20],// little
+  [5,9],[9,13],[13,17]           // palm frame
+ ];
+ hands.forEach((landmarks,handIndex)=>{
+  const joints=landmarks.map(v=>({x:(1-v.x)*w,y:v.y*h}));
+  ctx.save();
+  ctx.lineCap='round';ctx.lineJoin='round';
+  // Soft cyan bloom beneath the fine structural lines.
+  ctx.strokeStyle='rgba(43,190,255,.34)';ctx.lineWidth=4;
+  ctx.shadowColor='#28bfff';ctx.shadowBlur=10;
+  bones.forEach(([a,b])=>{
+   ctx.beginPath();ctx.moveTo(joints[a].x,joints[a].y);ctx.lineTo(joints[b].x,joints[b].y);ctx.stroke();
+  });
+  // Bright inner filament gives the hand a clean holographic / exoskeleton look.
+  ctx.shadowBlur=3;ctx.strokeStyle='rgba(190,247,255,.92)';ctx.lineWidth=1.15;
+  bones.forEach(([a,b])=>{
+   ctx.beginPath();ctx.moveTo(joints[a].x,joints[a].y);ctx.lineTo(joints[b].x,joints[b].y);ctx.stroke();
+  });
+  // Joint markers: subtle rings at knuckles, brighter points at fingertips.
+  joints.forEach((pt,n)=>{
+   const tip=[4,8,12,16,20].includes(n),root=n===0;
+   ctx.beginPath();ctx.arc(pt.x,pt.y,tip?3.1:root?3.5:2.1,0,Math.PI*2);
+   ctx.fillStyle=tip?'rgba(230,253,255,.98)':'rgba(75,207,255,.9)';
+   ctx.shadowColor='#54dfff';ctx.shadowBlur=tip?12:6;ctx.fill();
+   if(tip){ctx.beginPath();ctx.arc(pt.x,pt.y,6.2,0,Math.PI*2);ctx.strokeStyle='rgba(100,224,255,.55)';ctx.lineWidth=.8;ctx.stroke()}
+  });
+  ctx.restore();
+ });
 }
 async function start(){
  startBtn.disabled=true;startBtn.textContent='Запрашиваем камеру…';
